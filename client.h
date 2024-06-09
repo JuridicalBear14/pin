@@ -1,6 +1,20 @@
-#include "interface.h"
+#include "defn.h"
+
+class Interface;
 
 class Client {
+    public:
+        Client();
+        void send_message(char* buf, int size);
+        void recieve();
+        void start_interface();
+        void set_client_fd(int fd);
+
+        char* name;
+
     private:
-        Interface interface;
+        Interface* interface;
+        int client_fd;
+        pthread_mutex_t mutex;
+        int namelen;
 };

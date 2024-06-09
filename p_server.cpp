@@ -1,16 +1,6 @@
 //#define _GNU_SOURCE   // Not sure why this was here
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <poll.h>
-#include <pthread.h>
-#include <signal.h>
+#include "server.h"
 #include "defn.h"
 
 // Array of fds to monitor
@@ -50,6 +40,7 @@ void init(int ix) {
     // Read name
     names[ix] = (char*) malloc(sizeof(char) * NAMELEN);   // name char limit
     read(pollfds[ix].fd, names[ix], NAMELEN);
+    printf("Name recieved: %s\n", names[ix]);
 }
 
 // Monitor and relay socket messages

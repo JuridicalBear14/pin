@@ -1,42 +1,35 @@
-#include "interface.h"
+#include "local.h"
 #include "defn.h"
 
-// Colors
+// ********************************** Basic interface implementation *********************************************** //
 
-// Screen control mutex
-pthread_mutex_t mutex;
+void Interface::set_parent(Client* c) {
+    parent = c;
+}
 
-// Windows
-WINDOW* message_box;
-WINDOW* typebox;
+/* Redraw the entire screen (used mostly for window resizing) */
+void Interface::redraw_screen() {
+    // Clear existing window
+    endwin();
+    refresh();
 
-// Borders
-WINDOW* message_box_border;
-WINDOW* typebox_border;
+    // Reset globals
+    x = 0;
+    y = 0;
 
-// Psuedo-constant window sizes
-int TLINES = TYPEBOX_HEIGHT + 2;
-int TYPEBOX_WIDTH;
-int MESSAGE_BOX_HEIGHT;
-int MESSAGE_BOX_WIDTH;
+    // Start new interface
+    create_screen();
+}
 
-int MSG_MAX = 1000;   // Initial max for message count, doubles when space runs out
+/* Get my username from parent client */
+char* Interface::get_name() {
+    return parent->name;
+}
 
-// Global vars
-char** messages;
-int msgix = 0;   // Current index in message array
-int x = 0;   // Cusor positions
-int y = 0;
-int display_offset = 0;   // Offset for which messages are displayed
-                          // (ex: 1 -> display all messages except most recent)
+// ********************************** Message box interface implementation *********************************************** //
 
-// Functions
-void event_loop(WINDOW* typebox);
-void clear_window(WINDOW* win, int height);
-void create_screen();
-
-// Write message array to screen
-void write_messages() {
+/* Write all data to screen */
+void MessageWindow::write_to_screen() {
     int line = MESSAGE_BOX_HEIGHT - 1;   // Line to add to, starts at bottom
 
     // Clear message_box
@@ -57,30 +50,28 @@ void write_messages() {
     wrefresh(typebox);
 }
 
-// Add a local message to messages list
-void add_message(char* buf, int len) {
-    messages[msgix] = (char*) malloc(len + namelen + 4);
-    snprintf(messages[msgix], len + namelen + 4, "<%s> %s", name, buf);
-
+/* Add message to list */
+void MessageWindow::update_data(char* buf, int len) {
+    // Check if starts with '<' to see if local or remote
+    if (buf[0] == '<') {   // Remote
+        messages[msgix] = (char*) malloc(len);
+        strncpy(messages[msgix], buf, strlen(buf));
+    } else {   // Local
+        char* name = get_name();
+        int namelen = strlen(name);
+        messages[msgix] = (char*) malloc(len + namelen + 4);   // +4 for <>[space] and null
+        snprintf(messages[msgix], len + namelen + 4, "<%s> %s", name, buf);
+    }
+    
     // If limit hit, realloc
     if (++msgix == MSG_MAX) {
         messages = (char**) realloc(messages, MSG_MAX);
     }
 }
 
-// Add a remote message to messages
-void add_remote(char* buf, int len) {
-    messages[msgix] = (char*) malloc(len);
-    strncpy(messages[msgix], buf, strlen(buf));
-
-    // If limit hit, realloc
-    if (++msgix == MSG_MAX) {
-        messages = (char**) realloc(messages, MSG_MAX);
-    }
-}
 
 // Clears a window's contents
-void clear_window(WINDOW* win, int height) {
+void MessageWindow::clear_window(WINDOW* win, int height) {
     // Create clearing string
     char blanks[MESSAGE_BOX_WIDTH];
     sprintf(blanks, "%*c", MESSAGE_BOX_WIDTH, ' ');
@@ -93,13 +84,8 @@ void clear_window(WINDOW* win, int height) {
     wrefresh(win);
 }
 
-// Redraw window
-void redraw_window() {
-
-}
-
 // Create and draw a window
-WINDOW* create_border(int height, int width, int x, int y) {
+WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
     WINDOW* temp;
 
     temp = newwin(height, width, y, x);
@@ -110,42 +96,24 @@ WINDOW* create_border(int height, int width, int x, int y) {
     return temp;
 }
 
-// Redraws entire screen
-void redraw_screen() {
-    // Clear existing window
-    endwin();
-    refresh();
-
-    // Reset globals
-    x = 0;
-    y = 0;
-    display_offset = 0;
-    //msgix = 0;  // Not this one since message array remains
-
-    // Start new interface
-    create_screen();
-}
-
 // Initial setup
-void* start_interface(void* argv) {
+void MessageWindow::start_interface() {
     // Set up message array
     messages = (char**) calloc(MSG_MAX, sizeof(char*));
 
     // Create window
     create_screen();
-
-    return NULL;
 }
 
 // Creates a new screen without modifying any underlying data
-void create_screen() {
+void MessageWindow::create_screen() {
     // Set up gui stuff
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
     start_color();
-
+    
     // Set up mutex
     pthread_mutex_init(&mutex, NULL);
 
@@ -175,9 +143,9 @@ void create_screen() {
 
     // Refresh everything
     wrefresh(typebox);
-
+    
     // Draw any messages
-    write_messages();
+    write_to_screen();
 
     // Start event loop
     event_loop(typebox);
@@ -186,14 +154,14 @@ void create_screen() {
 }
 
 // Main event loop for keys
-void event_loop(WINDOW* typebox) {
+void MessageWindow::event_loop(WINDOW* typebox) {
     // A couple quick constants (not const bc screen resizing)
     int XMAX = TYPEBOX_WIDTH - 1;
     int YMAX = TYPEBOX_HEIGHT - 1;  // -1 because checks at end of line
     int XSTART = 0;
 
     int ch;    // int for expanded char set
-
+    
     // Buffer to hold current message being typed
     char buffer[MAXMSG];
     int addix = -1;   // Next index to add character
@@ -243,7 +211,7 @@ void event_loop(WINDOW* typebox) {
                     display_offset++;
 
                     pthread_mutex_lock(&mutex);
-                    write_messages();
+                    write_to_screen();
                     pthread_mutex_unlock(&mutex);
 
                     break;
@@ -251,7 +219,7 @@ void event_loop(WINDOW* typebox) {
                     display_offset == 0 ? : display_offset--;
 
                     pthread_mutex_lock(&mutex);
-                    write_messages();
+                    write_to_screen();
                     pthread_mutex_unlock(&mutex);
 
                     break;
@@ -262,11 +230,11 @@ void event_loop(WINDOW* typebox) {
                         buffer[++addix] = 0;
 
                         pthread_mutex_lock(&mutex);
-                        add_message(buffer, addix + 1);
-                        write_messages();
+                        update_data(buffer, addix + 1);
+                        write_to_screen();
                         pthread_mutex_unlock(&mutex);
 
-                        send_message(buffer, addix + 1);
+                        parent->send_message(buffer, addix + 1);
 
                         clear_window(typebox, TYPEBOX_HEIGHT);
                         memset(buffer, 0, addix);
@@ -290,13 +258,3 @@ void event_loop(WINDOW* typebox) {
         wrefresh(typebox);
     }
 }
-
-/*
-// Temporary testing main
-int main(void) {
-    name = "test";
-    namelen = 4;
-    start_interface(NULL);
-    return 0;
-}
-*/
