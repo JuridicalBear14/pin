@@ -1,8 +1,6 @@
 #include "local.h"
 #include "defn.h"
 
-int fd;
-
 Client::Client() {
     interface = new MessageWindow();
     interface->set_parent(this);
