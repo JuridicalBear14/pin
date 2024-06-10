@@ -1,5 +1,4 @@
 #include "local.h"
-#include "defn.h"
 
 // ********************************** Basic interface implementation *********************************************** //
 

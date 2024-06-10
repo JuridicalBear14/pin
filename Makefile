@@ -1,5 +1,5 @@
-CLIENT=p_client.cpp client.h
-SERVER=p_server.cpp server.h
+CLIENT=p_client.cpp client.cpp client.h
+SERVER=p_server.cpp server.cpp server.h
 INTERFACE=interface.cpp interface.h
 GCC=g++
 

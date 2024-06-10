@@ -4,7 +4,7 @@ class Interface;
 
 class Client {
     public:
-        Client();
+        Client(char* name, int fd);
         void send_message(char* buf, int size);
         void recieve();
         void start_interface();

@@ -1,81 +1,8 @@
-//#define _GNU_SOURCE   // Not sure why this was here
-
 #include "server.h"
-#include "defn.h"
 
-// Array of fds to monitor
-struct pollfd pollfds[MAXUSR];
-char* names[MAXUSR];
-
-// Find next open port index
-int nextindex() {
-    for (int i = 0; i < MAXUSR; i++) {
-        if (pollfds[i].fd == -1) {
-            return i;
-        }
-    }
-
-    // No open slots
-    return -1;
-}
-
-// Send message to all used ports other than given
-void sendall(int ix, char* buf) {
-    // Construct message
-    char* name = names[ix];
-    int msg_size = strlen(buf) + 4 + strlen(name);
-    char* msg = (char*) malloc(msg_size);
-    snprintf(msg, msg_size, "<%s> %s", name, buf);
-
-    for (int i = 0; i < MAXUSR; i++) {
-        if (pollfds[i].fd != -1 && i != ix) {
-            // Send to socket
-            write(pollfds[i].fd, msg, msg_size);
-        }
-    }
-}
-
-// Initialization function called on every new connection
-void init(int ix) {
-    // Read name
-    names[ix] = (char*) malloc(sizeof(char) * NAMELEN);   // name char limit
-    read(pollfds[ix].fd, names[ix], NAMELEN);
-    printf("Name recieved: %s\n", names[ix]);
-}
-
-// Monitor and relay socket messages
-void* relay(void* argv) {
-    int n;
-    char buf[MAXMSG];
-
-    // Wait for event
-    while ((n = poll(pollfds, MAXUSR, 1000)) != -1) {
-
-        // Figure out which fd(s) updated
-        for (int i = 0; i < MAXUSR; i++) {
-            if (pollfds[i].revents & POLLIN) {
-
-                // Ready to read
-                if (!read(pollfds[i].fd, buf, sizeof(buf))) {
-                    // Closed
-                    close(pollfds[i].fd);
-                    pollfds[i].fd = -1;
-
-                    fprintf(stderr, "Closed slot: %d\n", i);
-                    continue;
-                }
-
-                fprintf(stderr, "Message recieved from user: %s\n", names[i]);
-
-                // Send message to all others
-                sendall(i, buf);
-                memset(buf, 0, sizeof(buf));
-
-                // Reset revents
-                pollfds[i].revents = 0;
-            }
-        }
-    }
+void* start_server_relay(void* args) {
+    Server* s = (Server*) args;
+    s->start_server();
 
     return NULL;
 }
@@ -94,7 +21,6 @@ int main(void) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
-
 
     // Forcefully attaching socket to the port 8080
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
@@ -116,44 +42,25 @@ int main(void) {
         exit(EXIT_FAILURE);
     }
 
-    // Set up pollfds
-    for (int i = 0; i < MAXUSR; i++) {
-        pollfds[i].events = POLLIN;
-        pollfds[i].fd = -1;
-    }
+    Server s(server_fd);
 
     // Set up relay thread
     pthread_t r_thread;
-    pthread_create(&r_thread, NULL, relay, NULL);
+    pthread_create(&r_thread, NULL, start_server_relay, &s);
+    pthread_detach(r_thread);
 
     // Playing with printing IP
     /*
+    char name[1024];
+    gethostname(name, 1024);
     fprintf(stderr, "Server running, accepting connections:\n");
-    fprintf(stderr, "IP address is: %s\n", inet_ntoa(address.sin_addr));
+    fprintf(stderr, "IP address is: %s\n", name);
     fprintf(stderr, "port is: %d\n", (int) ntohs(address.sin_port));
     */
 
-    // Wait and accept incoming connections
-    int index;
-    while (1) {
-        if ((index = nextindex()) == -1) {
-            // No open slots
-            continue;
-        }
+   s.connection_listener(address, addrlen);
 
-        fprintf(stderr, "Slot %d available\n", index);
-
-        // Accept connection
-        if ((pollfds[index].fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
-            perror("accept");
-            exit(EXIT_FAILURE);
-        }
-
-        init(index);
-        fprintf(stderr, "Connection accepted in slot %d, fd: %d\n", index, pollfds[index].fd);
-    }
-
-    // closing the listening socket
+    // Closing the listening socket
     shutdown(server_fd, SHUT_RDWR);
     return 0;
 }

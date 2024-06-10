@@ -1,45 +1,12 @@
-#include "local.h"
-#include "defn.h"
+#include "client.h"
 
-Client::Client() {
-    interface = new MessageWindow();
-    interface->set_parent(this);
-}
-
-void Client::send_message(char* buf, int size) {
-    int sent = send(client_fd, buf, size, 0);
-}
-
-void Client::start_interface() {
-    interface->start_interface();
-}
-
-void Client::set_client_fd(int fd) {
-    client_fd = fd;
-}
-
-/* Recieve message and write to interface */
-void Client::recieve() {
-    char buf[MAXMSG];
-    int ret;
-    while ((ret = read(client_fd, buf, MAXMSG)) > 0) {
-        pthread_mutex_lock(&mutex);
-        
-        interface->update_data(buf, strlen(buf));
-        interface->write_to_screen();
-
-        pthread_mutex_unlock(&mutex);
-        memset(buf, 0, sizeof(buf));
-    }
-}
-
-// Init function run on connection
+/* Init function run on connection */
 void init(Client c, int client_fd) {
     // Send name over
     int sent = send(client_fd, c.name, NAMELEN, 0);
 }
 
-/* Exists so that pthread can start bound funcs */
+/* Pass control to interface class */
 void* start_interface(void* args) {
     Client c = *((Client*) args);
     c.start_interface();
@@ -47,7 +14,7 @@ void* start_interface(void* args) {
     return NULL;
 }
 
-/* Exists so that pthread can start bound funcs */
+/* Pass control to client class */
 void* start_listener(void* args) {
     Client c = *((Client*) args);
     c.recieve();
@@ -57,21 +24,19 @@ void* start_listener(void* args) {
 
 
 int main(int argc, char** argv) {
-    Client c;
-
     int client_fd;
     char* ip = "127.0.0.1";
-    c.name = "NULL";
+    char* name = "NULL";
 
     // Name given
     if (argc > 1) {
-        c.name = argv[1];
-        if (strlen(c.name) > NAMELEN) {  // Clip off name
-            c.name[NAMELEN] = 0;
+        name = argv[1];
+        if (strlen(name) > NAMELEN) {  // Clip off name
+            name[NAMELEN] = 0;
         }
     }
 
-    int namelen = strlen(c.name);
+    int namelen = strlen(name);
 
     // ip given
     if (argc > 2) {
@@ -102,7 +67,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     
-    c.set_client_fd(client_fd);
+    Client c(name, client_fd);
     init(c, client_fd);
 
     pthread_t listener_t;
