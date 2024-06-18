@@ -4,17 +4,16 @@ class Interface;
 
 class Client {
     public:
-        Client(char* name, int fd);
-        void send_message(char* buf, int size);
+        Client(std::string name, int fd);
+        void send_message(std::string buf);
         void recieve();
         void start_interface();
         void set_client_fd(int fd);
 
-        char* name;
+        std::string name;
 
     private:
         Interface* interface;
         int client_fd;
         pthread_mutex_t mutex;
-        int namelen;
 };

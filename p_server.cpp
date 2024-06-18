@@ -14,7 +14,7 @@ int main(void) {
     int opt = 1;
     int addrlen = sizeof(address);
 
-    fprintf(stderr, "Starting server...\n");
+    std::cout << "Starting server...\n";
 
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {

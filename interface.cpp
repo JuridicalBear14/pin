@@ -21,7 +21,7 @@ void Interface::redraw_screen() {
 }
 
 /* Get my username from parent client */
-char* Interface::get_name() {
+std::string Interface::get_name() {
     return parent->name;
 }
 
@@ -30,16 +30,16 @@ char* Interface::get_name() {
 /* Write all data to screen */
 void MessageWindow::write_to_screen() {
     int line = MESSAGE_BOX_HEIGHT - 1;   // Line to add to, starts at bottom
-
+    
     // Clear message_box
     clear_window(message_box, MESSAGE_BOX_HEIGHT);
 
     int line_height;
-    for (int i = msgix - 1 - display_offset; i >= 0; i--) {
+    for (int i = messages.size() - 1 - display_offset; i >= 0; i--) {
         // Get line height for wrapping pruposes
-        line_height = (strlen(messages[i])) / MESSAGE_BOX_WIDTH;
+        line_height = messages[i].length() / MESSAGE_BOX_WIDTH;
 
-        mvwaddstr(message_box, (line -= line_height), 0, messages[i]);
+        mvwaddstr(message_box, (line -= line_height), 0, messages[i].c_str());
         line -= 1 + MSGGAP;   // Allows for configurable text gap
     }
 
@@ -50,28 +50,20 @@ void MessageWindow::write_to_screen() {
 }
 
 /* Add message to list */
-void MessageWindow::update_data(char* buf, int len) {
+void MessageWindow::update_data(std::string buf) {
     // Check if starts with '<' to see if local or remote
     if (buf[0] == '<') {   // Remote
-        messages[msgix] = (char*) malloc(len);
-        strncpy(messages[msgix], buf, strlen(buf));
+        messages.push_back(buf);
     } else {   // Local
-        char* name = get_name();
-        int namelen = strlen(name);
-        messages[msgix] = (char*) malloc(len + namelen + 4);   // +4 for <>[space] and null
-        snprintf(messages[msgix], len + namelen + 4, "<%s> %s", name, buf);
-    }
-    
-    // If limit hit, realloc
-    if (++msgix == MSG_MAX) {
-        messages = (char**) realloc(messages, MSG_MAX);
+        std::string msg = "<" + get_name() + "> " + buf;
+        messages.push_back(msg);
     }
 }
 
 
-// Clears a window's contents
+/* Clears a window's contents */
 void MessageWindow::clear_window(WINDOW* win, int height) {
-    // Create clearing string
+    // Create clearing string (C style because leagacy and it works)
     char blanks[MESSAGE_BOX_WIDTH];
     sprintf(blanks, "%*c", MESSAGE_BOX_WIDTH, ' ');
 
@@ -83,7 +75,7 @@ void MessageWindow::clear_window(WINDOW* win, int height) {
     wrefresh(win);
 }
 
-// Create and draw a window
+/* Create and draw a window */
 WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
     WINDOW* temp;
 
@@ -98,7 +90,7 @@ WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
 // Initial setup
 void MessageWindow::start_interface() {
     // Set up message array
-    messages = (char**) calloc(MSG_MAX, sizeof(char*));
+    //messages = (char**) calloc(MSG_MAX, sizeof(char*));
 
     // Create window
     create_screen();
@@ -162,8 +154,7 @@ void MessageWindow::event_loop(WINDOW* typebox) {
     int ch;    // int for expanded char set
     
     // Buffer to hold current message being typed
-    char buffer[MAXMSG];
-    int addix = -1;   // Next index to add character
+    std::string buffer;
 
     // Move to start of box
     wmove(typebox, y, x);
@@ -171,17 +162,17 @@ void MessageWindow::event_loop(WINDOW* typebox) {
 
     // Run until F1 quit key
     while ((ch = wgetch(typebox)) != KEY_F(1)) {
-        if (isprint(ch) && (addix < MAXMSG)) {  // If regular key, just write
+        if (isprint(ch)) {  // If regular key, just write
             if (x < XMAX) {
                 waddch(typebox, ch);
-                buffer[++addix] = ch;
+                buffer.push_back((char) ch);
                 x++;
 
             } else {
                 // At edge, new line
                 if (y < YMAX) {
                     waddch(typebox, ch);
-                    buffer[++addix] = ch;
+                    buffer.push_back((char) ch);
                     y++;
                     x = 0;
                 }
@@ -201,7 +192,7 @@ void MessageWindow::event_loop(WINDOW* typebox) {
                         }
 
                         // Remove from buffer
-                        buffer[addix--] = 0;
+                        buffer.pop_back();
                     }
                     break;
 
@@ -225,19 +216,16 @@ void MessageWindow::event_loop(WINDOW* typebox) {
 
                 case '\n':   // Enter
                     // If not empty, add
-                    if (strlen(buffer) > 0) {
-                        buffer[++addix] = 0;
-
+                    if (buffer.length() > 0) {
                         pthread_mutex_lock(&mutex);
-                        update_data(buffer, addix + 1);
+                        update_data(buffer);
                         write_to_screen();
                         pthread_mutex_unlock(&mutex);
 
-                        parent->send_message(buffer, addix + 1);
+                        parent->send_message(buffer);
 
                         clear_window(typebox, TYPEBOX_HEIGHT);
-                        memset(buffer, 0, addix);
-                        addix = -1;
+                        buffer.clear();
 
                         y = 0; x = 0;
                     }

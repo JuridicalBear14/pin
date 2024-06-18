@@ -8,13 +8,13 @@ class Server {
 
     private:
         int nextindex();
-        void sendall(int ix, char* buf);
+        void sendall(int ix, std::string);
         void init_connection(int ix);
         void msg_relay();
 
         // Array of fds to monitor and names
         struct pollfd pollfds[MAXUSR];
-        char* names[MAXUSR];
+        std::vector<std::string> names;
 
         int server_fd;
 };

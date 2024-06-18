@@ -3,7 +3,7 @@
 /* Init function run on connection */
 void init(Client c, int client_fd) {
     // Send name over
-    int sent = send(client_fd, c.name, NAMELEN, 0);
+    int sent = send(client_fd, c.name.c_str(), NAMELEN, 0);
 }
 
 /* Pass control to interface class */
@@ -25,18 +25,16 @@ void* start_listener(void* args) {
 
 int main(int argc, char** argv) {
     int client_fd;
-    char* ip = "127.0.0.1";
-    char* name = "NULL";
+    std::string ip = "127.0.0.1";
+    std::string name = "NULL";
 
     // Name given
     if (argc > 1) {
         name = argv[1];
-        if (strlen(name) > NAMELEN) {  // Clip off name
-            name[NAMELEN] = 0;
+        if (name.length() > NAMELEN) {  // Clip off name
+            name = name.substr(0, NAMELEN);
         }
     }
-
-    int namelen = strlen(name);
 
     // ip given
     if (argc > 2) {
@@ -47,7 +45,7 @@ int main(int argc, char** argv) {
     struct sockaddr_in serv_addr;
 
     if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("\n Socket creation error \n");
+        std::cerr << "\n Socket creation error \n";
         return -1;
     }
 
@@ -56,14 +54,14 @@ int main(int argc, char** argv) {
 
     // Convert IPv4 and IPv6 addresses from text to binary
     // form
-    if (inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0) {
-        printf("\nInvalid address/ Address not supported \n");
+    if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0) {
+        std::cerr << "\nInvalid address/ Address not supported \n";
         return -1;
     }
 
     // Connect to server
     if ((status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
-        printf("\nConnection Failed \n");
+        std::cerr << "\nConnection Failed \n";
         return -1;
     }
     

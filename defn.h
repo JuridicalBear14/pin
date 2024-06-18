@@ -12,6 +12,8 @@
 #include <poll.h>
 #include <pthread.h>
 #include <signal.h>
+#include <iostream>
+#include <vector>
 
 #define PORT 5555
 #define MAXUSR 10

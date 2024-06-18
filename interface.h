@@ -15,12 +15,12 @@ class Interface {
     public:
         virtual void start_interface() {};
         virtual void write_to_screen() {};
-        virtual void update_data(char* buf, int len) {};
+        virtual void update_data(std::string buf) {};
         void set_parent(Client* c);
 
     protected:
         void redraw_screen();
-        char* get_name();
+        std::string get_name();
         virtual void create_screen() {};
         virtual void event_loop(WINDOW* window) {};
 
@@ -38,7 +38,7 @@ class MessageWindow: public Interface {
         // Overrides
         void start_interface();
         void write_to_screen();
-        void update_data(char* buf, int len);
+        void update_data(std::string buf);
 
     private:
         // Overrides
@@ -65,8 +65,7 @@ class MessageWindow: public Interface {
         int MSG_MAX = 1000;   // Initial max for message count, doubles when space runs out
 
         // Global vars
-        char** messages;
-        int msgix = 0;   // Current index in message array
+        std::vector<std::string> messages;
         int display_offset = 0;   // Offset for which messages are displayed
         // (ex: 1 -> display all messages except most recent)
 };
@@ -74,7 +73,7 @@ class MessageWindow: public Interface {
 class ScrollableList: Interface {
 
 };
-
+ 
 class LoginScreen: Interface {
 
 };
