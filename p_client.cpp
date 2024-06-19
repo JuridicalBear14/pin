@@ -68,17 +68,14 @@ int main(int argc, char** argv) {
     Client c(name, client_fd);
     init(c, client_fd);
 
-    pthread_t listener_t;
-    pthread_t interface_t;
-
-    pthread_create(&interface_t, NULL, start_interface, &c);
-    pthread_create(&listener_t, NULL, start_listener, &c);
+    std::thread listener_t(start_listener, &c);
+    std::thread interface_t(start_interface, &c);
 
     // Cleanup threads
-    pthread_detach(listener_t);    // Detach this guy, since we only want to wait on local
-    pthread_join(interface_t, NULL);
+    listener_t.detach();    // Detach this guy, since we only want to wait on GUI
+    interface_t.join();
 
-    // closing the connected socket
+    // Closing the connected socket
     close(client_fd);
     return 0;
 }

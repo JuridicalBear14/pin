@@ -89,9 +89,6 @@ WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
 
 // Initial setup
 void MessageWindow::start_interface() {
-    // Set up message array
-    //messages = (char**) calloc(MSG_MAX, sizeof(char*));
-
     // Create window
     create_screen();
 }

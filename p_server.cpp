@@ -45,9 +45,8 @@ int main(void) {
     Server s(server_fd);
 
     // Set up relay thread
-    pthread_t r_thread;
-    pthread_create(&r_thread, NULL, start_server_relay, &s);
-    pthread_detach(r_thread);
+    std::thread r_thread(start_server_relay, &s);
+    r_thread.detach();
 
     // Playing with printing IP
     /*
