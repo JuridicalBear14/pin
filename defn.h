@@ -1,4 +1,5 @@
 /* Shared definitions between client and server */
+#pragma once
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -20,12 +21,15 @@
 #define NAMELEN 15     // Max name length
 #define MAXMSG 1024    // Max message length
 
+// Header constants
+#define STATUS_NULL 0
+#define STATUS_CONNECT 1
+#define STATUS_MSG 2
+
 // Struct for communication header
-/*
 struct p_header {
-    uint64_t uid;    // User id
-    u_int64_t cid;    // Convo id
-    int type;   // Message type
-    int status;   // Generic status int
-    u_int64_t size;   // Size of following data (bytes)
-}; */
+    int uid;    // User id
+    int cid;    // Convo id
+    int status;   // Message type
+    uint64_t size;   // Size of following data (bytes)
+};

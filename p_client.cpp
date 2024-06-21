@@ -3,7 +3,7 @@
 /* Init function run on connection */
 void init(Client c, int client_fd) {
     // Send name over
-    int sent = send(client_fd, c.name.c_str(), NAMELEN, 0);
+    c.send_message(STATUS_CONNECT, c.name.c_str());
 }
 
 /* Pass control to interface class */

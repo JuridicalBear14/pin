@@ -49,33 +49,71 @@ int Server::nextindex() {
     return -1;
 }
 
+/* Read a message into str and return the header */
+int Server::readmsg(int fd, p_header& header, std::string& str) {
+    // First read header
+    int ret = read(fd, &header, sizeof(p_header));
+    if (ret <= 0) {
+        return 0;
+    }
+
+    int size = header.size % MAXMSG;    // % MAXMSG in case somehow bigger than max
+
+    // If something else to read, read it
+    if (size > 0) {
+        char buf[size + 1];   // +1 to allow space for null byte
+        memset(buf, 0, sizeof(buf));
+
+        read(fd, buf, sizeof(buf));
+        str.assign(buf);
+    }
+
+    return size;
+}
+
+/* Send a message to a client */
+void Server::send_msg(int fd, p_header header, std::string buf) {
+    // Send header
+    int ret = send(fd, &header, sizeof(header), 0);
+
+    // Send message
+    int sent = send(fd, buf.c_str(), header.size, 0);
+}
+
 void Server::sendall(int ix, std::string buf) {
+    // Construct header
+    p_header header;
+    header.uid = -1;   // NOT IMPLEMENTED
+    header.cid = -1;   // NOT IMPLEMENTED
+    header.status = STATUS_MSG;
+
     // Construct message
     std::string msg = "<" + names[ix] + "> " + buf;
+    header.size = msg.length();
 
     for (int i = 0; i < MAXUSR; i++) {
         if (pollfds[i].fd != -1 && i != ix) {
             // Send to socket
-            int r = write(pollfds[i].fd, msg.c_str(), msg.length());
+            send_msg(pollfds[i].fd, header, msg);
         }
     }
 }
 
 void Server::init_connection(int ix) {
     // Read name
-    char buf[NAMELEN];
-    memset(buf, 0, sizeof(buf));
+    std::string str;
+    p_header header;
 
-    read(pollfds[ix].fd, buf, sizeof(buf));
-    names.push_back(std::string(buf));
+    readmsg(pollfds[ix].fd, header, str);
+    names.push_back(str);
 
     std::cout << "Name recieved: " + names[names.size() - 1] + "\n";
 }
 
 void Server::msg_relay() {
     int n;
-    char buf[MAXMSG];
-    memset(buf, 0, sizeof(buf));
+    std::string str;
+    p_header header;
 
     // Wait for event
     while ((n = poll(pollfds, MAXUSR, 1000)) != -1) {
@@ -85,7 +123,7 @@ void Server::msg_relay() {
             if (pollfds[i].revents & POLLIN) {
 
                 // Ready to read
-                if (!read(pollfds[i].fd, buf, sizeof(buf))) {
+                if (!readmsg(pollfds[i].fd, header, str)) {
                     // Closed
                     close(pollfds[i].fd);
                     pollfds[i].fd = -1;
@@ -97,8 +135,7 @@ void Server::msg_relay() {
                 std::cout << "Message recieved from user: " + names[i] + "\n";
 
                 // Send message to all others
-                sendall(i, std::string(buf));
-                memset(buf, 0, sizeof(buf));
+                sendall(i, str);
 
                 // Reset revents
                 pollfds[i].revents = 0;

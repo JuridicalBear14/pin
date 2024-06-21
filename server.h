@@ -11,6 +11,8 @@ class Server {
         void sendall(int ix, std::string);
         void init_connection(int ix);
         void msg_relay();
+        int readmsg(int fd, p_header& header, std::string& str);
+        void send_msg(int fd, p_header header, std::string buf);
 
         // Array of fds to monitor and names
         struct pollfd pollfds[MAXUSR];

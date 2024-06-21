@@ -219,7 +219,7 @@ void MessageWindow::event_loop(WINDOW* typebox) {
                         write_to_screen();
                         pthread_mutex_unlock(&mutex);
 
-                        parent->send_message(buffer);
+                        parent->send_message(STATUS_MSG, buffer);
 
                         clear_window(typebox, TYPEBOX_HEIGHT);
                         buffer.clear();

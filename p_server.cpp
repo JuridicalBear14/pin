@@ -57,7 +57,7 @@ int main(void) {
     fprintf(stderr, "port is: %d\n", (int) ntohs(address.sin_port));
     */
 
-   s.connection_listener(address, addrlen);
+    s.connection_listener(address, addrlen);
 
     // Closing the listening socket
     shutdown(server_fd, SHUT_RDWR);
