@@ -41,8 +41,10 @@ int main(void) {
         perror("listen");
         exit(EXIT_FAILURE);
     }
-
+    
     Server s(server_fd);
+    Database* db = new DB_FS(-1);
+    db->add_user();
 
     // Set up relay thread
     std::thread r_thread(start_server_relay, &s);
@@ -61,5 +63,6 @@ int main(void) {
 
     // Closing the listening socket
     shutdown(server_fd, SHUT_RDWR);
+    delete db;
     return 0;
 }

@@ -1,4 +1,5 @@
 #include "defn.h"
+#include "database.h"
 
 class Server {
     public:

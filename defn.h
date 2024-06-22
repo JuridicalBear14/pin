@@ -1,6 +1,7 @@
 /* Shared definitions between client and server */
 #pragma once
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -13,6 +14,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <thread>
 

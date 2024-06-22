@@ -9,6 +9,10 @@ Client::Client(std::string name, int fd) {
     uid = -1;   // NOT IMPLEMENTED
 }
 
+Client::~Client() {
+    delete interface;   // Make sure to clean up allocated interface when we go out
+}
+
 void Client::send_message(int status, std::string buf) {
     // Construct header
     p_header header;

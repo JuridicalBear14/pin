@@ -5,6 +5,7 @@ class Interface;
 class Client {
     public:
         Client(std::string name, int fd);
+        ~Client();
         void send_message(int status, std::string buf);
         void recieve();
         void start_interface();
