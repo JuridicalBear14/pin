@@ -1,6 +1,12 @@
 #include "defn.h"
 #include "database.h"
 
+// Server settings struct
+struct server_settings {
+    int db;    // ID of which db to use
+    int port;
+};
+
 class Server {
     public:
         Server(int fd);

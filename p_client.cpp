@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     }
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port = htons(DEFAULT_PORT);
 
     // Convert IPv4 and IPv6 addresses from text to binary
     // form

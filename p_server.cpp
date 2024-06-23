@@ -7,12 +7,26 @@ void* start_server_relay(void* args) {
     return NULL;
 }
 
-// Main startup and port accept function
+/* Read server settings from config file */
+int read_settings(struct server_settings& s) {
+    s.db = DB_DEFAULT;
+    s.port = DEFAULT_PORT;
+
+    return 0;
+}
+
+/* Main startup and port accept function */
 int main(void) {
     int server_fd, new_socket;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
+
+    // Read server settings
+    struct server_settings settings;
+    if (!read_settings(settings)) {
+        std::cout << "Unable to read config file, using default settings\n";
+    }
 
     std::cout << "Starting server...\n";
 
@@ -30,9 +44,9 @@ int main(void) {
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_port = htons(settings.port);
 
-    // Forcefully attaching socket to the port 5555
+    // Forcefully attaching socket to the port
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
@@ -43,8 +57,7 @@ int main(void) {
     }
     
     Server s(server_fd);
-    Database* db = new DB_FS(-1);
-    db->add_user();
+    Database* db = new DB_FS(settings.db);
 
     // Set up relay thread
     std::thread r_thread(start_server_relay, &s);

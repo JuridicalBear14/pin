@@ -17,8 +17,9 @@
 #include <fstream>
 #include <vector>
 #include <thread>
+#include <algorithm>
 
-#define PORT 5555
+#define DEFAULT_PORT 5555
 #define MAXUSR 10
 #define NAMELEN 15     // Max name length
 #define MAXMSG 1024    // Max message length

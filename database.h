@@ -1,5 +1,11 @@
 #include "defn.h"
+
 #define DATA_DIR "data"
+
+// Settings for which db to use
+#define DB_NONE -1
+#define DB_DEFAULT 0   // Default will use the newest db in index, or create new if none are found
+#define DB_NEW -2
 
 class Database {
     public:
@@ -18,7 +24,11 @@ class DB_FS: public Database {
         int add_user();
 
     private:
+        void build_FS(std::vector<int>& entries);
         int build_db();
+
+        int db_id;
+        std::string db_path;
 };
 
 

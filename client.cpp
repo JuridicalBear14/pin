@@ -10,7 +10,7 @@ Client::Client(std::string name, int fd) {
 }
 
 Client::~Client() {
-    delete interface;   // Make sure to clean up allocated interface when we go out
+    //delete interface;   // Make sure to clean up allocated interface when we go out
 }
 
 void Client::send_message(int status, std::string buf) {
@@ -66,7 +66,7 @@ void Client::recieve() {
     
     while (read_message(header, str) > 0) {    // -1 to leave room for null
         pthread_mutex_lock(&mutex);
-
+        
         interface->update_data(str);
         interface->write_to_screen();
 
