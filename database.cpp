@@ -18,16 +18,21 @@ DB_FS::DB_FS(int id) {
     build_FS(databases);
     
     if ((id == DB_NEW) || (id == DB_DEFAULT && databases.size() < 1)) {  // Create new
-        build_db();
+        db_id = build_db();
+
+        if (db_id == DB_NONE) {
+            std::cout << "Unable to create database, defaulting to none\n";
+        }
+
         return;
     }
 
     // If default then use head
     if (id == DB_DEFAULT) {
-        std::cout << "Using default database\n";
-
-        db_id = databases[0];
+        db_id = databases.back();
         db_path = "data/pin_db_" + std::to_string(databases[0]) + "/";
+
+        std::cout << "Using default database: " << db_path << "\n";
 
         return;
     }
@@ -46,6 +51,7 @@ DB_FS::DB_FS(int id) {
     }
 }
 
+/* Build the pin file system structure and/or index all databases found in it */
 void DB_FS::build_FS(std::vector<int>& entries) {
     // First check for data dir
     struct stat sb;
@@ -69,6 +75,20 @@ void DB_FS::build_FS(std::vector<int>& entries) {
     f.close();
 }
 
+/* Build a new database and update index, return the id of the new db or DB_NONE for error */
+int DB_FS::build_db() {
+    // Find largest id
+    int new_id = generate_id();
+
+    return DB_NONE;
+}
+
+/* Generate a new unique db id */
+int DB_FS::generate_id() {
+    // NOT IMPLEMENTED
+    return -1;
+}
+
 int DB_FS::add_user() {
     std::cout << "hello";
     return -1;
@@ -78,10 +98,3 @@ int DB_FS::add_msg(p_header header, std::string str) {
     return -1;
 }
 
-/* Build a new database and update index */
-int DB_FS::build_db() {
-    // NOT IMPLEMENTED
-    db_id = DB_NONE;
-
-    return -1;
-}

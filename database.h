@@ -26,6 +26,7 @@ class DB_FS: public Database {
     private:
         void build_FS(std::vector<int>& entries);
         int build_db();
+        int generate_id();
 
         int db_id;
         std::string db_path;
