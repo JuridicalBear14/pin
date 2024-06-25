@@ -59,6 +59,9 @@ int main(void) {
     Server s(server_fd);
     Database* db = new DB_FS(settings.db);
 
+    // Connect db to server
+    s.connect_db(db);
+
     // Set up relay thread
     std::thread r_thread(start_server_relay, &s);
     r_thread.detach();

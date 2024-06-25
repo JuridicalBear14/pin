@@ -11,7 +11,8 @@ class Database {
     public:
         virtual int add_user() {return -1;};
         virtual int add_convo() {return -1;};
-        virtual int add_msg(p_header header, std::string str) {return -1;};
+        virtual int write_msg(p_header header, std::string str) {return -1;};
+        virtual int get_all_messages(std::vector<std::string>& messages) {return -1;};
 
     protected:
         virtual int build_db() {return -1;};
@@ -20,8 +21,9 @@ class Database {
 class DB_FS: public Database {
     public:
         DB_FS(int id);
-        int add_msg(p_header header, std::string str);
+        int write_msg(p_header header, std::string str);
         int add_user();
+        int get_all_messages(std::vector<std::string>& messages);
 
     private:
         void build_FS(std::vector<int>& entries);

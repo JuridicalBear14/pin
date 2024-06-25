@@ -13,6 +13,24 @@ Client::~Client() {
     //delete interface;   // Make sure to clean up allocated interface when we go out
 }
 
+/* Initialize connection to server */
+void Client::init() {
+    // Send name over
+    send_message(STATUS_CONNECT, name.c_str());
+
+    // Now recieve header detailing how many messages
+    std::string buf;
+    p_header header;
+    read_message(header, buf);
+
+    // Loop and collect messages
+    int message_count = header.size;
+    for (int i = 0; i < message_count; i++) {
+        int ret = read_message(header, buf);
+        interface->update_data(buf);
+    }
+}
+
 void Client::send_message(int status, std::string buf) {
     // Construct header
     p_header header;
@@ -40,11 +58,12 @@ int Client::read_message(p_header& header, std::string& str) {
     int size = header.size % MAXMSG;    // % MAXMSG in case somehow bigger than max
 
     // If something else to read, read it
-    if (size > 0) {
+    if (size > 0 && header.status != STATUS_CONNECT) {
         char buf[size + 1];   // +1 to allow space for null byte
         memset(buf, 0, sizeof(buf));
 
-        read(client_fd, buf, sizeof(buf));
+        int r = read(client_fd, buf, header.size);
+
         str.assign(buf);
     }
 

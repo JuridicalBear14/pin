@@ -18,6 +18,7 @@
 #include <vector>
 #include <thread>
 #include <algorithm>
+#include <future>
 
 #define DEFAULT_PORT 5555
 #define MAXUSR 10
@@ -28,6 +29,7 @@
 #define STATUS_NULL 0
 #define STATUS_CONNECT 1
 #define STATUS_MSG 2
+#define STATUS_MSG_OLD 3   // Message being sent to catch up to db
 
 // Struct for communication header
 struct p_header {

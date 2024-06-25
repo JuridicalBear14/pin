@@ -10,6 +10,7 @@ class Client {
         void recieve();
         void start_interface();
         void set_client_fd(int fd);
+        void init();
 
         std::string name;
 

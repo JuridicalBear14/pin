@@ -1,11 +1,5 @@
 #include "client.h"
 
-/* Init function run on connection */
-void init(Client c, int client_fd) {
-    // Send name over
-    c.send_message(STATUS_CONNECT, c.name.c_str());
-}
-
 /* Pass control to interface class */
 void* start_interface(void* args) {
     Client c = *((Client*) args);
@@ -66,7 +60,7 @@ int main(int argc, char** argv) {
     }
     
     Client c(name, client_fd);
-    init(c, client_fd);
+    c.init();
 
     std::thread listener_t(start_listener, &c);
     std::thread interface_t(start_interface, &c);
