@@ -25,6 +25,8 @@ DB_FS::DB_FS(int id) {
             std::cout << "Unable to create database, defaulting to none\n";
         }
 
+        std::cout << "Using new database at location: " << db_path << "\n";
+
         return;
     }
 
@@ -87,7 +89,7 @@ int DB_FS::build_db() {
     }
 
     // Create folder
-    std::string path = "data/pin_db_" + std::to_string(new_id);
+    std::string path = "data/pin_db_" + std::to_string(new_id) + "/";
     int ret = mkdir(path.c_str(), 0777);
 
     // Update index
@@ -102,6 +104,8 @@ int DB_FS::build_db() {
     std::ofstream create(path + "/convo", std::ios::app);
     create.close();
 
+    // Remember to set path for class!
+    this->db_path = path;
     return new_id;
 }
 
