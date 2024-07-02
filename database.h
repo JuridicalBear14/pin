@@ -16,6 +16,7 @@ class Database {
 
     protected:
         virtual int build_db() {return -1;};
+        std::mutex mut;
 };
 
 class DB_FS: public Database {

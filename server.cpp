@@ -12,7 +12,9 @@ Server::Server(int fd) {
 
 /* Connect to database */
 void Server::connect_db(Database* db) {
+    mut.lock();
     database = db;
+    mut.unlock();
 }
 
 /* Start up the server (for now just calls relay, but will be expanded upon later) */
@@ -24,6 +26,7 @@ void Server::start_server() {
 void Server::connection_listener(struct sockaddr_in address, int addrlen) {
     // Wait and accept incoming connections
     int index;
+    int fd;
     while (1) {
         if ((index = nextindex()) == -1) {
             // No open slots
@@ -33,10 +36,15 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
         printf("Slot %d available\n", index);
 
         // Accept connection
-        if ((pollfds[index].fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
+        if ((fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
             perror("accept");
             exit(EXIT_FAILURE);
         }
+
+        // Set fd safely
+        mut.lock();
+        pollfds[index].fd = fd;
+        mut.unlock();
 
         init_connection(index);
         printf("Connection accepted in slot %d, fd: %d\n", index, pollfds[index].fd);
@@ -51,11 +59,14 @@ void Server::init_connection(int ix) {
     p_header header;
 
     readmsg(pollfds[ix].fd, header, str);
+
+    mut.lock();
     names.push_back(str);
+    mut.unlock();
 
     std::cout << "Name recieved: " + names[names.size() - 1] + "\n";
 
-    // Dispatch thread to catch client up to we can get back to listening
+    // Dispatch thread to catch client up so we can get back to listening
     auto handle = std::async(std::launch::async, sync_client_db, database, pollfds[ix].fd);
 }
 
@@ -85,13 +96,17 @@ void Server::sync_client_db(Database* database, int fd) {
 }
 
 int Server::nextindex() {
+    mut.lock();
+
     for (int i = 0; i < MAXUSR; i++) {
         if (pollfds[i].fd == -1) {
+            mut.unlock();
             return i;
         }
     }
 
     // No open slots
+    mut.unlock();
     return -1;
 }
 
@@ -139,6 +154,8 @@ void Server::sendall(int ix, std::string buf) {
     header.cid = -1;   // NOT IMPLEMENTED
     header.status = STATUS_MSG;
 
+    mut.lock();
+
     // Construct message
     std::string msg = "<" + names[ix] + "> " + buf;
     header.size = msg.length();
@@ -149,6 +166,8 @@ void Server::sendall(int ix, std::string buf) {
             send_msg(pollfds[i].fd, header, msg);
         }
     }
+
+    mut.unlock();
 }
 
 /* Listen for incoming messages and relay them across the network */
@@ -166,9 +185,13 @@ void Server::msg_relay() {
 
                 // Ready to read
                 if (!readmsg(pollfds[i].fd, header, str)) {
+                    mut.lock();
+
                     // Closed
                     close(pollfds[i].fd);
                     pollfds[i].fd = -1;
+
+                    mut.unlock();
 
                     printf("Closed slot: %d\n", i);
                     continue;

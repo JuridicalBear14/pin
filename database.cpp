@@ -56,6 +56,8 @@ DB_FS::DB_FS(int id) {
 
 /* Build the pin file system structure and/or index all databases found in it */
 void DB_FS::build_FS(std::vector<int>& entries) {
+    mut.lock();
+
     // First check for data dir
     struct stat sb;
     if (stat(DATA_DIR, &sb)) {
@@ -75,6 +77,7 @@ void DB_FS::build_FS(std::vector<int>& entries) {
         entries.push_back(std::stoi(buf));
     }
 
+    mut.unlock();
     f.close();
 }
 
@@ -85,32 +88,41 @@ int DB_FS::build_db() {
 
     // Check for error
     if (new_id == DB_NONE) {
+        mut.unlock();
         return DB_NONE;
     }
+
+    mut.lock();
 
     // Create folder
     std::string path = "data/pin_db_" + std::to_string(new_id) + "/";
     int ret = mkdir(path.c_str(), 0777);
+
+    if (ret == -1) {
+        mut.unlock();
+        return DB_NONE;
+    }
 
     // Update index
     std::ofstream index("data/index", std::ios::app);
     index << new_id << std::endl;
     index.close();
 
-    if (ret == -1) {
-        return DB_NONE;
-    }
-
+    // Create the convo file to hold actual conversation
     std::ofstream create(path + "/convo", std::ios::app);
     create.close();
 
     // Remember to set path for class!
     this->db_path = path;
+
+    mut.unlock();
     return new_id;
 }
 
 /* Generate a new unique db id */
 int DB_FS::generate_id() {
+    mut.lock();
+
     // Open index
     std::ifstream f("data/index");
     std::string buf;
@@ -124,11 +136,13 @@ int DB_FS::generate_id() {
     }
 
     f.close();
+
+    mut.unlock();
     return max + 1;
 }
 
 int DB_FS::add_user() {
-    std::cout << "hello";
+    // NOT IMPLEMENTED
     return -1;
 }
 
@@ -138,12 +152,16 @@ int DB_FS::write_msg(p_header header, std::string str) {
         return DB_NONE;
     }
 
+    mut.lock();
+
     // Open stream
     std::ofstream f(db_path + "convo", std::ios::app);
 
     f << str << std::endl;
 
     f.close();
+
+    mut.unlock();
     return str.size() + 1;  // +1 for newline
 }
 
@@ -153,6 +171,8 @@ int DB_FS::get_all_messages(std::vector<std::string>& messages) {
         return DB_NONE;
     }
 
+    mut.lock();
+
     // Open convo
     std::ifstream f(db_path + "convo");
     std::string buf;
@@ -161,5 +181,6 @@ int DB_FS::get_all_messages(std::vector<std::string>& messages) {
         messages.push_back(buf);
     }
 
+    mut.unlock();
     return 0;
 }
