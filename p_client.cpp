@@ -2,16 +2,16 @@
 
 /* Pass control to interface class */
 void* start_interface(void* args) {
-    Client c = *((Client*) args);
-    c.start_interface();
+    Client* c = (Client*) args;
+    c->start_interface();
 
     return NULL;
 }
 
 /* Pass control to client class */
 void* start_listener(void* args) {
-    Client c = *((Client*) args);
-    c.recieve();
+    Client* c = (Client*) args;
+    c->recieve();
 
     return NULL;
 }

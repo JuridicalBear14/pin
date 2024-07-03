@@ -33,7 +33,7 @@ DB_FS::DB_FS(int id) {
     // If default then use head
     if (id == DB_DEFAULT) {
         db_id = databases.back();
-        db_path = "data/pin_db_" + std::to_string(databases[0]) + "/";
+        db_path = "data/pin_db_" + std::to_string(db_id) + "/";
 
         std::cout << "Using default database: " << db_path << "\n";
 

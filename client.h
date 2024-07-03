@@ -19,6 +19,6 @@ class Client {
 
         Interface* interface;
         int client_fd;
-        pthread_mutex_t mutex;
+        std::mutex mut;
         int uid;
 };

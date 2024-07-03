@@ -75,7 +75,9 @@ void Client::start_interface() {
 }
 
 void Client::set_client_fd(int fd) {
+    mut.lock();
     client_fd = fd;
+    mut.unlock();
 }
 
 /* Recieve message and write to interface */
@@ -84,11 +86,7 @@ void Client::recieve() {
     p_header header;
     
     while (read_message(header, str) > 0) {    // -1 to leave room for null
-        pthread_mutex_lock(&mutex);
-        
         interface->update_data(str);
         interface->write_to_screen();
-
-        pthread_mutex_unlock(&mutex);
     }
 }

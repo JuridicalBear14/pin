@@ -62,8 +62,6 @@ class MessageWindow: public Interface {
         int MESSAGE_BOX_HEIGHT;
         int MESSAGE_BOX_WIDTH;
 
-        int MSG_MAX = 1000;   // Initial max for message count, doubles when space runs out
-
         // Global vars
         std::vector<std::string> messages;
         int display_offset = 0;   // Offset for which messages are displayed
