@@ -8,6 +8,8 @@ void Interface::set_parent(Client* c) {
 
 /* Redraw the entire screen (used mostly for window resizing) */
 void Interface::redraw_screen() {
+    mutex.lock();
+
     // Clear existing window
     endwin();
     refresh();
@@ -15,6 +17,8 @@ void Interface::redraw_screen() {
     // Reset globals
     x = 0;
     y = 0;
+
+    mutex.unlock();
 
     // Start new interface
     create_screen();
@@ -30,9 +34,11 @@ std::string Interface::get_name() {
 /* Write all data to screen */
 void MessageWindow::write_to_screen() {
     int line = MESSAGE_BOX_HEIGHT - 1;   // Line to add to, starts at bottom
-    
+
     // Clear message_box
     clear_window(message_box, MESSAGE_BOX_HEIGHT);
+
+    mutex.lock();
 
     int line_height;
     for (int i = messages.size() - 1 - display_offset; i >= 0; i--) {
@@ -47,10 +53,14 @@ void MessageWindow::write_to_screen() {
     keypad(typebox, TRUE);
     wrefresh(message_box);
     wrefresh(typebox);
+
+    mutex.unlock();
 }
 
 /* Add message to list */
 void MessageWindow::update_data(std::string buf) {
+    mutex.lock();
+
     // Check if starts with '<' to see if local or remote
     if (buf[0] == '<') {   // Remote
         messages.push_back(buf);
@@ -58,6 +68,8 @@ void MessageWindow::update_data(std::string buf) {
         std::string msg = "<" + get_name() + "> " + buf;
         messages.push_back(msg);
     }
+
+    mutex.unlock();
 }
 
 
@@ -67,33 +79,40 @@ void MessageWindow::clear_window(WINDOW* win, int height) {
     char blanks[MESSAGE_BOX_WIDTH];
     sprintf(blanks, "%*c", MESSAGE_BOX_WIDTH, ' ');
 
+    mutex.lock();
+
     // Clear each line
     for (int i = 0; i < height; i++) {
         mvwaddstr(win, i, 0, blanks);   // Clear line
     }
 
     wrefresh(win);
+
+    mutex.unlock();
 }
 
 /* Create and draw a window */
 WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
     WINDOW* temp;
 
+    mutex.lock();
+
     temp = newwin(height, width, y, x);
     wborder(temp, '|', '|', '-', '-', '+', '+', '+', '+');
 
     wrefresh(temp);
+
+    mutex.unlock();
 
     return temp;
 }
 
 // Initial setup
 void MessageWindow::start_interface() {
-    // Create window
     create_screen();
 }
 
-// Creates a new screen without modifying any underlying data
+/* Creates a new screen without modifying any underlying data */
 void MessageWindow::create_screen() {
     // Set up gui stuff
     initscr();
@@ -101,9 +120,6 @@ void MessageWindow::create_screen() {
     noecho();
     keypad(stdscr, TRUE);
     start_color();
-    
-    // Set up mutex
-    pthread_mutex_init(&mutex, NULL);
 
     // Set up color pairs
 
@@ -131,10 +147,10 @@ void MessageWindow::create_screen() {
 
     // Refresh everything
     wrefresh(typebox);
-    
+
     // Draw any messages
     write_to_screen();
-
+    
     // Start event loop
     event_loop(typebox);
 
@@ -196,28 +212,18 @@ void MessageWindow::event_loop(WINDOW* typebox) {
                 // Arrow keys
                 case KEY_UP:
                     display_offset++;
-
-                    pthread_mutex_lock(&mutex);
                     write_to_screen();
-                    pthread_mutex_unlock(&mutex);
-
                     break;
                 case KEY_DOWN:
                     display_offset == 0 ? : display_offset--;
-
-                    pthread_mutex_lock(&mutex);
                     write_to_screen();
-                    pthread_mutex_unlock(&mutex);
-
                     break;
 
                 case '\n':   // Enter
                     // If not empty, add
                     if (buffer.length() > 0) {
-                        pthread_mutex_lock(&mutex);
                         update_data(buffer);
                         write_to_screen();
-                        pthread_mutex_unlock(&mutex);
 
                         parent->send_message(STATUS_MSG, buffer);
 

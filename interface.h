@@ -27,7 +27,7 @@ class Interface {
         // Colors
 
         Client* parent;
-        pthread_mutex_t mutex;
+        std::mutex mutex;
         int x = 0;   // Cursor positions
         int y = 0;
 };
