@@ -3,9 +3,9 @@
 #define DATA_DIR "data"
 
 // Settings for which db to use
-#define DB_NONE -1
+#define DB_NONE -2
 #define DB_DEFAULT 0   // Default will use the newest db in index, or create new if none are found
-#define DB_NEW -2
+#define DB_NEW -1
 
 class Database {
     public:

@@ -9,8 +9,47 @@ void* start_server_relay(void* args) {
 
 /* Read server settings from config file */
 int read_settings(struct server_settings& s) {
+    // First make everything default settings
     s.db = DB_DEFAULT;
     s.port = DEFAULT_PORT;
+
+    /*----------------------------------------*/
+
+    // Open settings file
+    std::string filename = SERVER_SETTINGS_FILE;
+    std::ifstream f(filename);
+
+    // Check if it didn't open correctly
+    if (!f.good()) {
+        return -1;
+    }
+
+    // Now loop through and set any settings found
+    // Not sure if this is the most effective way to do it, but it works
+    std::string buf;
+    std::string set;
+    std::string val;
+    while (std::getline(f, buf)) {
+        // If comment (starts with #) skip
+        if (buf[0] == '#' || isspace(buf[0]) || (buf.find(' ') == std::string::npos)) {
+            continue;
+        }
+
+        // Otherwise switch case
+        set = buf.substr(0, buf.find(' '));   // Grab first word, aka which setting
+        val = buf.substr(buf.find(' ') + 1);
+
+        if (val.size() < 1) {
+            // No val, continue
+            continue;
+        }
+
+        if (set == "db") {
+            s.db = std::stoi(buf.substr(buf.find(" ") + 1));
+        } else if (set == "port") {
+            s.port = std::stoi(buf.substr(buf.find(" ") + 1));
+        }
+    }
 
     return 0;
 }
@@ -24,7 +63,7 @@ int main(void) {
 
     // Read server settings
     struct server_settings settings;
-    if (!read_settings(settings)) {
+    if (read_settings(settings)) {
         std::cout << "Unable to read config file, using default settings\n";
     }
 

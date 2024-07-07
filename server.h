@@ -1,6 +1,9 @@
 #include "defn.h"
 #include "database.h"
 
+// Constants
+#define SERVER_SETTINGS_FILE "settings.conf"
+
 // Server settings struct
 struct server_settings {
     int db;    // ID of which db to use
