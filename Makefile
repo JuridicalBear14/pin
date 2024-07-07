@@ -12,11 +12,11 @@ client: $(CLIENT) $(INTERFACE) defn.h
 server: $(SERVER) $(DATABASE) defn.h
 	$(GCC) -o server $(SERVER) $(DATABASE) -lpthread -g
 
-interface: $(INTERFACE) defn.h
-	$(GCC) -o interface $(INTERFACE) -lncurses -g
+# interface: $(INTERFACE) defn.h
+# 	$(GCC) -o interface $(INTERFACE) -lncurses -g
 
-database: $(DATABASE) defn.h
-	$(GCC) -o database $(DATABASE) -g
+# database: $(DATABASE) defn.h
+# 	$(GCC) -o database $(DATABASE) -g
 
 run: both
 	gnome-terminal -- bash -c './server'
@@ -24,4 +24,4 @@ run: both
 	gnome-terminal -- bash -c './client client2'
 
 clean:
-	rm server client interface database
+	rm server client

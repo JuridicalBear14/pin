@@ -34,3 +34,8 @@
 # Directories
 .vscode/*
 data/*
+
+# My Stuff
+client
+server
+settings.conf
