@@ -21,12 +21,12 @@ void Client::init() {
     // Now recieve header detailing how many messages
     std::string buf;
     p_header header;
-    read_message(header, buf);
+    net::read_header(client_fd, header);
 
     // Loop and collect messages
     int message_count = header.size;
     for (int i = 0; i < message_count; i++) {
-        int ret = read_message(header, buf);
+        int ret = net::read_msg(client_fd, header, buf);
         interface->update_data(buf);
     }
 }
@@ -39,35 +39,8 @@ void Client::send_message(int status, std::string buf) {
     header.status = status;
     header.size = buf.length();
 
-    // Send header
-    int ret = send(client_fd, &header, sizeof(header), 0);
-
-    // Send message
-    int sent = send(client_fd, buf.c_str(), header.size, 0);
-}
-
-/* Read a message into str and header */
-int Client::read_message(p_header& header, std::string& str) {
-    // First read header
-    int ret = read(client_fd, &header, sizeof(p_header));
-
-    if (ret <= 0) {
-        return 0;
-    }
-
-    int size = header.size % MAXMSG;    // % MAXMSG in case somehow bigger than max
-
-    // If something else to read, read it
-    if (size > 0 && header.status != STATUS_CONNECT) {
-        char buf[size + 1];   // +1 to allow space for null byte
-        memset(buf, 0, sizeof(buf));
-
-        int r = read(client_fd, buf, header.size);
-
-        str.assign(buf);
-    }
-
-    return size;
+    // Now call net
+    int ret = net::send_msg(client_fd, header, buf);
 }
 
 void Client::start_interface() {
@@ -85,7 +58,7 @@ void Client::recieve() {
     std::string str;
     p_header header;
     
-    while (read_message(header, str) > 0) {    // -1 to leave room for null
+    while (net::read_msg(client_fd, header, str) > 0) {
         interface->update_data(str);
         interface->write_to_screen();
     }

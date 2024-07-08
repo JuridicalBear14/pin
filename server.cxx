@@ -58,7 +58,7 @@ void Server::init_connection(int ix) {
     std::string str;
     p_header header;
 
-    readmsg(pollfds[ix].fd, header, str);
+    net::read_msg(pollfds[ix].fd, header, str);
 
     mut.lock();
     names.push_back(str);
@@ -80,18 +80,18 @@ void Server::sync_client_db(Database* database, int fd) {
     p_header header;
     header.uid = -1;
     header.cid = -1;
-    header.status = STATUS_CONNECT;
+    header.status = STATUS_ITEM_COUNT;
     header.size = messages.size();
 
-    send_header(fd, header);
+    net::send_header(fd, header);
 
     // Now build generic header to pack and send each one
     header.status = STATUS_MSG_OLD;
-
+    int count = 0;
     // Loop and send messages
     for (std::string& s : messages) {
         header.size = s.size();
-        send_msg(fd, header, s);
+        net::send_msg(fd, header, s);
     }
 }
 
@@ -108,42 +108,6 @@ int Server::nextindex() {
     // No open slots
     mut.unlock();
     return -1;
-}
-
-/* Read a message into str and return the header */
-int Server::readmsg(int fd, p_header& header, std::string& str) {
-    // First read header
-    int ret = read(fd, &header, sizeof(p_header));
-    if (ret <= 0) {
-        return 0;
-    }
-
-    int size = header.size % MAXMSG;    // % MAXMSG in case somehow bigger than max
-
-    // If something else to read, read it
-    if (size > 0) {
-        char buf[size + 1];   // +1 to allow space for null byte
-        memset(buf, 0, sizeof(buf));
-
-        read(fd, buf, sizeof(buf));
-        str.assign(buf);
-    }
-
-    return size;
-}
-
-/* Send a message to a client */
-void Server::send_msg(int fd, p_header header, std::string buf) {
-    // Send header
-    int ret = send(fd, &header, sizeof(header), 0);
-
-    // Send message
-    int sent = send(fd, buf.c_str(), header.size, 0);
-}
-
-/* Send just header to client */
-void Server::send_header(int fd, p_header header) {
-    int ret = send(fd, &header, sizeof(header), 0);
 }
 
 /* Send message to all other users */
@@ -163,7 +127,7 @@ void Server::sendall(int ix, std::string buf) {
     for (int i = 0; i < MAXUSR; i++) {
         if (pollfds[i].fd != -1 && i != ix) {
             // Send to socket
-            send_msg(pollfds[i].fd, header, msg);
+            net::send_msg(pollfds[i].fd, header, msg);
         }
     }
 
@@ -184,7 +148,7 @@ void Server::msg_relay() {
             if (pollfds[i].revents & POLLIN) {
 
                 // Ready to read
-                if (!readmsg(pollfds[i].fd, header, str)) {
+                if (!net::read_msg(pollfds[i].fd, header, str)) {
                     mut.lock();
 
                     // Closed

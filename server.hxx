@@ -1,5 +1,6 @@
 #include "defn.hxx"
 #include "database.hxx"
+#include "net.hxx"
 
 // Constants
 #define SERVER_SETTINGS_FILE "pin.conf"
@@ -22,9 +23,6 @@ class Server {
         void sendall(int ix, std::string);
         void init_connection(int ix);
         void msg_relay();
-        static int readmsg(int fd, p_header& header, std::string& str);
-        static void send_msg(int fd, p_header header, std::string buf);
-        static void send_header(int fd, p_header header);
         static void sync_client_db(Database* database, int fd);
 
         std::mutex mut;

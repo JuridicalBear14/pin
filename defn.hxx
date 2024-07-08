@@ -30,6 +30,7 @@
 #define STATUS_CONNECT 1
 #define STATUS_MSG 2
 #define STATUS_MSG_OLD 3   // Message being sent to catch up to db
+#define STATUS_ITEM_COUNT 4   // Message that defines a count of following messages, rather than a number of bytes
 
 // Struct for communication header
 struct p_header {

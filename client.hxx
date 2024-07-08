@@ -1,4 +1,5 @@
 #include "defn.hxx"
+#include "net.hxx"
 
 class Interface;
 
@@ -15,8 +16,6 @@ class Client {
         std::string name;
 
     private:
-        int read_message(p_header& header, std::string& str);
-
         Interface* interface;
         int client_fd;
         std::mutex mut;
