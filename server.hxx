@@ -2,7 +2,7 @@
 #include "database.hxx"
 
 // Constants
-#define SERVER_SETTINGS_FILE "settings.conf"
+#define SERVER_SETTINGS_FILE "pin.conf"
 
 // Server settings struct
 struct server_settings {
