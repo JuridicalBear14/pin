@@ -1,4 +1,4 @@
-#include "local.h"
+#include "local.hxx"
 
 Client::Client(std::string name, int fd) {
     interface = new MessageWindow();

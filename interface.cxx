@@ -1,4 +1,4 @@
-#include "local.h"
+#include "local.hxx"
 
 // ********************************** Basic interface implementation *********************************************** //
 

@@ -1,5 +1,5 @@
-#include "defn.h"
-#include "database.h"
+#include "defn.hxx"
+#include "database.hxx"
 
 // Constants
 #define SERVER_SETTINGS_FILE "settings.conf"

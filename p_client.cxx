@@ -1,4 +1,4 @@
-#include "client.h"
+#include "client.hxx"
 
 /* Pass control to interface class */
 void* start_interface(void* args) {

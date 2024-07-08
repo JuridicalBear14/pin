@@ -1,6 +1,6 @@
 #include <ncurses.h>
 #include <ctype.h>
-#include "defn.h"
+#include "defn.hxx"
 
 // UI stuff
 #define TYPEBOX_HEIGHT 2

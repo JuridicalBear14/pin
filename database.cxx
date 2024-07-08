@@ -1,5 +1,5 @@
 /* Implementation for Databases */
-#include "database.h"
+#include "database.hxx"
 
 // ********************************** Basic database implementation *********************************************** //
 

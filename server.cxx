@@ -1,4 +1,4 @@
-#include "server.h"
+#include "server.hxx"
 
 Server::Server(int fd) {
     server_fd = fd;

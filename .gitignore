@@ -38,4 +38,4 @@ data/*
 # My Stuff
 client
 server
-settings.conf
+pin.conf

@@ -1,4 +1,4 @@
-#include "server.h"
+#include "server.hxx"
 
 void* start_server_relay(void* args) {
     Server* s = (Server*) args;

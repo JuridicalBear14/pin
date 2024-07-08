@@ -1,4 +1,4 @@
-#include "defn.h"
+#include "defn.hxx"
 
 class Interface;
 
