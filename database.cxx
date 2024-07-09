@@ -108,8 +108,8 @@ int DB_FS::build_db() {
     index << new_id << std::endl;
     index.close();
 
-    // Create the convo file to hold actual conversation
-    std::ofstream create(path + "/convo", std::ios::app);
+    // Create the convo file index to hold conversation data
+    std::ofstream create(path + "/convo_index", std::ios::app);
     create.close();
 
     // Remember to set path for class!
@@ -147,7 +147,7 @@ int DB_FS::add_user() {
 }
 
 /* Write a message to the database and return bytes written */
-int DB_FS::write_msg(p_header header, std::string str) {
+int DB_FS::write_msg(int cid, p_header header, std::string str) {
     if (db_id == DB_NONE) {
         return DB_NONE;
     }
@@ -155,7 +155,7 @@ int DB_FS::write_msg(p_header header, std::string str) {
     mut.lock();
 
     // Open stream
-    std::ofstream f(db_path + "convo", std::ios::app);
+    std::ofstream f(db_path + "convo_" + std::to_string(cid), std::ios::app);
 
     f << str << std::endl;
 
@@ -165,8 +165,8 @@ int DB_FS::write_msg(p_header header, std::string str) {
     return str.size() + 1;  // +1 for newline
 }
 
-/* Fetch all messages from the database and write them into given vector */
-int DB_FS::get_all_messages(std::vector<std::string>& messages) {
+/* Fetch all messages from the given convo and write them into given vector */
+int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
     if (db_id == DB_NONE) {
         return DB_NONE;
     }
@@ -174,11 +174,31 @@ int DB_FS::get_all_messages(std::vector<std::string>& messages) {
     mut.lock();
 
     // Open convo
-    std::ifstream f(db_path + "convo");
+    std::ifstream f(db_path + "convo_" + std::to_string(cid));
     std::string buf;
     
     while (std::getline(f, buf)) {
         messages.push_back(buf);
+    }
+
+    mut.unlock();
+    return 0;
+}
+
+/* Fetch entries for convo index */
+int DB_FS::get_convo_index(std::string& items) {
+    if (db_id == DB_NONE) {
+        return DB_NONE;
+    }
+
+    mut.lock();
+
+    // Open convo
+    std::ifstream f(db_path + "convo_index");
+    std::string buf;
+    
+    while (std::getline(f, buf)) {
+        items += buf + " ";
     }
 
     mut.unlock();

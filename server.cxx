@@ -72,16 +72,34 @@ void Server::init_connection(int ix) {
 
 /* Catch the client up on the contents of the db */
 void Server::sync_client_db(Database* database, int fd) {
+    // Get items
+    std::string items;
+    database->get_convo_index(items);
+
+    items = "<Convo Options> " + items;
+
+    // Send to client as list
+    p_header header;
+    header.uid = -1;
+    header.cid = -1;
+    header.status = STATUS_CONNECT;
+    header.size = items.size();
+
+    net::send_msg(fd, header, items);
+}
+
+/* Sync client with contents of convo */
+void Server::sync_client_convo(Database* database, int fd, int cid) {
     // Get message list
     std::vector<std::string> messages;
-    int ret = database->get_all_messages(messages);
+    int ret = database->get_all_messages(cid, messages);
 
     // Send intitial header to tell client how many messages to expect
     p_header header;
     header.uid = -1;
-    header.cid = -1;
+    header.cid = cid;
     header.status = STATUS_ITEM_COUNT;
-    header.size = messages.size();
+    header.data = messages.size();
 
     net::send_header(fd, header);
 
@@ -148,7 +166,7 @@ void Server::msg_relay() {
             if (pollfds[i].revents & POLLIN) {
 
                 // Ready to read
-                if (!net::read_msg(pollfds[i].fd, header, str)) {
+                if (!net::read_header(pollfds[i].fd, header)) {
                     mut.lock();
 
                     // Closed
@@ -163,12 +181,26 @@ void Server::msg_relay() {
 
                 std::cout << "Message recieved from user: " + names[i] + "\n";
 
-                // Write to db
-                std::string msg = "<" + names[i] + "> " + str;
-                database->write_msg(header, msg);
+                // Check header
+                switch (header.status) {
+                    case STATUS_DB_FETCH:
+                        // Dispatch thread to catch client up so we can get back to listening
+                        sync_client_convo(database, pollfds[i].fd, header.cid);
+                        break;
 
-                // Send message to all others
-                sendall(i, str);
+                    case STATUS_MSG: 
+                        // Read rest of message
+                        net::read_data(pollfds[i].fd, header.size, str);
+
+                        // Write to db
+                        std::string msg = "<" + names[i] + "> " + str;
+                        database->write_msg(1, header, msg);
+
+                        // Send message to all others
+                        sendall(i, str);
+                        break;
+                }
+
 
                 // Reset revents
                 pollfds[i].revents = 0;

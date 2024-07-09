@@ -16,6 +16,8 @@ class Client {
         std::string name;
 
     private:
+        void read_convo(int cid, std::vector<std::string>& str);
+
         Interface* interface;
         int client_fd;
         std::mutex mut;

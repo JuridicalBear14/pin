@@ -24,6 +24,7 @@ class Server {
         void init_connection(int ix);
         void msg_relay();
         static void sync_client_db(Database* database, int fd);
+        static void sync_client_convo(Database* database, int fd, int cid);
 
         std::mutex mut;
 

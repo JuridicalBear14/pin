@@ -18,13 +18,35 @@ void Client::init() {
     // Send name over
     send_message(STATUS_CONNECT, name.c_str());
 
-    // Now recieve header detailing how many messages
+    // Now recieve message detailing convos
+    p_header header;
+    std::string buf;
+
+    net::read_msg(client_fd, header, buf);
+    interface->update_data(buf);
+
+    std::vector<std::string> s;
+    read_convo(1, s);
+}
+
+/* Read a convo's data from server */
+void Client::read_convo(int cid, std::vector<std::string>& str) {
+    // Send request to server
+    p_header req;
+    req.cid = cid;
+    req.size = 0;
+    req.status = STATUS_DB_FETCH;
+    req.uid = -1;
+
+    net::send_header(client_fd, req);
+
+    // Read how many messages to expect
     std::string buf;
     p_header header;
     net::read_header(client_fd, header);
 
     // Loop and collect messages
-    int message_count = header.size;
+    int message_count = header.data;
     for (int i = 0; i < message_count; i++) {
         int ret = net::read_msg(client_fd, header, buf);
         interface->update_data(buf);

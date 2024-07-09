@@ -59,6 +59,17 @@ int net::read_header(int fd, p_header& header) {
     return ret;
 }
 
+/* Read just the data of a message (when the header was already read) */
+int net::read_data(int fd, int size, std::string& data) {
+    char buf[size + 1];   // +1 to allow space for null byte
+    memset(buf, 0, sizeof(buf));
+
+    int bytes_read = read(fd, buf, size);
+    data.assign(buf);
+
+    return bytes_read;
+}
+
 /* Build a header struct from given args and return it */
 p_header net::build_header() {
     // NOT IMPLEMENTED
