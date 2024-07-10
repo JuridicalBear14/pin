@@ -9,8 +9,32 @@ Client::Client(std::string name, int fd) {
     uid = -1;   // NOT IMPLEMENTED
 }
 
-Client::~Client() {
-    //delete interface;   // Make sure to clean up allocated interface when we go out
+/* Create and manage all interfaces */
+void Client::interface_handler() {
+    // Run until exit code break
+    while (true) {
+        std::cout << tempbuf << "\n";
+
+        std::string buf;
+        std::cin >> buf;
+
+        int choice = std::atoi(buf.c_str());
+        cid = choice;
+
+        std::vector<std::string> s;
+        read_convo(choice, s);
+
+        int ret = interface->start_interface();
+
+        if (ret == EXIT_NONE) {
+            break;
+        }
+
+        // Just for testing build new interface each time
+        delete interface;
+        interface = new MessageWindow();
+        interface->set_parent(this);
+    }
 }
 
 /* Initialize connection to server */
@@ -23,10 +47,7 @@ void Client::init() {
     std::string buf;
 
     net::read_msg(client_fd, header, buf);
-    interface->update_data(buf);
-
-    std::vector<std::string> s;
-    read_convo(1, s);
+    tempbuf = buf;
 }
 
 /* Read a convo's data from server */
@@ -49,7 +70,9 @@ void Client::read_convo(int cid, std::vector<std::string>& str) {
     int message_count = header.data;
     for (int i = 0; i < message_count; i++) {
         int ret = net::read_msg(client_fd, header, buf);
+        std::cout << "read\n";
         interface->update_data(buf);
+        std::cout << "update\n";
     }
 }
 
@@ -57,16 +80,12 @@ void Client::send_message(int status, std::string buf) {
     // Construct header
     p_header header;
     header.uid = uid;
-    header.cid = -1;   // NOT IMPLEMENTED
+    header.cid = cid;   // NOT IMPLEMENTED
     header.status = status;
     header.size = buf.length();
 
     // Now call net
     int ret = net::send_msg(client_fd, header, buf);
-}
-
-void Client::start_interface() {
-    interface->start_interface();
 }
 
 void Client::set_client_fd(int fd) {

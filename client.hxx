@@ -6,10 +6,9 @@ class Interface;
 class Client {
     public:
         Client(std::string name, int fd);
-        ~Client();
+        void interface_handler();
         void send_message(int status, std::string buf);
         void recieve();
-        void start_interface();
         void set_client_fd(int fd);
         void init();
 
@@ -22,4 +21,7 @@ class Client {
         int client_fd;
         std::mutex mut;
         int uid;
+        int cid;  // Current cid
+
+        std::string tempbuf;
 };

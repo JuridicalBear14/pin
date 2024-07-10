@@ -7,7 +7,7 @@ void Interface::set_parent(Client* c) {
 }
 
 /* Redraw the entire screen (used mostly for window resizing) */
-void Interface::redraw_screen() {
+int Interface::redraw_screen() {
     mutex.lock();
 
     // Clear existing window
@@ -21,7 +21,22 @@ void Interface::redraw_screen() {
     mutex.unlock();
 
     // Start new interface
-    create_screen();
+    return create_screen();
+}
+
+/* End the screen control without throwing away any data */
+void Interface::background() {
+    mutex.lock();
+
+    // Clear existing window
+    endwin();
+    refresh();
+
+    // Reset cursor since we won't save typed text
+    x = 0;
+    y = 0;
+
+    mutex.unlock();
 }
 
 /* Get my username from parent client */
@@ -107,13 +122,13 @@ WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
     return temp;
 }
 
-// Initial setup
-void MessageWindow::start_interface() {
-    create_screen();
+/* Initial setup */
+int MessageWindow::start_interface() {
+    return create_screen();
 }
 
 /* Creates a new screen without modifying any underlying data */
-void MessageWindow::create_screen() {
+int MessageWindow::create_screen() {
     // Set up gui stuff
     initscr();
     cbreak();
@@ -152,13 +167,20 @@ void MessageWindow::create_screen() {
     write_to_screen();
     
     // Start event loop
-    event_loop(typebox);
+    int exit_code = event_loop(typebox);
 
     endwin();
+    //refresh();
+
+    // Reset cursor since we won't save typed text
+    x = 0;
+    y = 0;
+
+    return exit_code;
 }
 
 // Main event loop for keys
-void MessageWindow::event_loop(WINDOW* typebox) {
+int MessageWindow::event_loop(WINDOW* typebox) {
     // A couple quick constants (not const bc screen resizing)
     int XMAX = TYPEBOX_WIDTH - 1;
     int YMAX = TYPEBOX_HEIGHT - 1;  // -1 because checks at end of line
@@ -235,11 +257,13 @@ void MessageWindow::event_loop(WINDOW* typebox) {
                     break;
 
                 case KEY_F(2):   // Screen refresh
-                    redraw_screen();
-                    return;
+                    return redraw_screen();
                 case KEY_RESIZE:   // Screen resize
-                    redraw_screen();
-                    return;
+                    return redraw_screen();
+                case KEY_F(3):
+                case '\e':   // Escape
+                    // Return control but don't exit the whole program
+                    return EXIT_BG;
             }
         }
 
@@ -247,4 +271,6 @@ void MessageWindow::event_loop(WINDOW* typebox) {
         wmove(typebox, y, x);
         wrefresh(typebox);
     }
+
+    return EXIT_NONE;
 }

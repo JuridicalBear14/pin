@@ -3,7 +3,7 @@
 /* Pass control to interface class */
 void* start_interface(void* args) {
     Client* c = (Client*) args;
-    c->start_interface();
+    c->interface_handler();
 
     return NULL;
 }

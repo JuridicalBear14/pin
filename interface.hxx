@@ -13,16 +13,17 @@ class Client;
 */
 class Interface {
     public:
-        virtual void start_interface() {};
+        virtual int start_interface() {return -1;};
         virtual void write_to_screen() {};
         virtual void update_data(std::string buf) {};
         void set_parent(Client* c);
+        void background();
 
     protected:
-        void redraw_screen();
+        int redraw_screen();
         std::string get_name();
-        virtual void create_screen() {};
-        virtual void event_loop(WINDOW* window) {};
+        virtual int create_screen() {return -1;};
+        virtual int event_loop(WINDOW* window) {return -1;};
 
         // Colors
 
@@ -36,14 +37,14 @@ class Interface {
 class MessageWindow: public Interface {
     public:
         // Overrides
-        void start_interface();
+        int start_interface();
         void write_to_screen();
         void update_data(std::string buf);
 
     private:
         // Overrides
-        void event_loop(WINDOW* typebox);
-        void create_screen();
+        int event_loop(WINDOW* typebox);
+        int create_screen();
 
         WINDOW* create_border(int height, int width, int x, int y);
         void clear_window(WINDOW* win, int height);

@@ -102,7 +102,7 @@ void Server::sync_client_convo(Database* database, int fd, int cid) {
     header.data = messages.size();
 
     net::send_header(fd, header);
-
+    std::cout << messages.size() << "\n";
     // Now build generic header to pack and send each one
     header.status = STATUS_MSG_OLD;
     int count = 0;
@@ -110,6 +110,7 @@ void Server::sync_client_convo(Database* database, int fd, int cid) {
     for (std::string& s : messages) {
         header.size = s.size();
         net::send_msg(fd, header, s);
+        std::cout << "Sent\n";
     }
 }
 
@@ -179,13 +180,15 @@ void Server::msg_relay() {
                     continue;
                 }
 
-                std::cout << "Message recieved from user: " + names[i] + "\n";
+                std::cout << "Message recieved from user: " << names[i] <<  ", Type: " << header.status << "\n";
 
                 // Check header
                 switch (header.status) {
                     case STATUS_DB_FETCH:
                         // Dispatch thread to catch client up so we can get back to listening
+                        std::cout << "Sync client " << names[i] << " with convo " << header.cid << "\n";
                         sync_client_convo(database, pollfds[i].fd, header.cid);
+                        std::cout << "end\n";
                         break;
 
                     case STATUS_MSG: 
@@ -194,7 +197,7 @@ void Server::msg_relay() {
 
                         // Write to db
                         std::string msg = "<" + names[i] + "> " + str;
-                        database->write_msg(1, header, msg);
+                        database->write_msg(header.cid, header, msg);
 
                         // Send message to all others
                         sendall(i, str);

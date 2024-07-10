@@ -25,6 +25,10 @@
 #define NAMELEN 15     // Max name length
 #define MAXMSG 1024    // Max message length
 
+// Exit code stuff for interface and client
+#define EXIT_NONE 0   // Exit program fully
+#define EXIT_BG 1   // Put this interface in the background on exit
+
 // Header constants
 #define STATUS_NULL 0
 #define STATUS_CONNECT 1
