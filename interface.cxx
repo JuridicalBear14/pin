@@ -73,15 +73,21 @@ void MessageWindow::write_to_screen() {
 }
 
 /* Add message to list */
-void MessageWindow::update_data(std::string buf) {
+void MessageWindow::update_data(std::string buf, int type) {
     mutex.lock();
+    
+    switch (type) {
+        case STATUS_NULL:   // Local
+            messages.push_back("<" + get_name() + "> " + buf);
+            break;
 
-    // Check if starts with '<' to see if local or remote
-    if (buf[0] == '<') {   // Remote
-        messages.push_back(buf);
-    } else {   // Local
-        std::string msg = "<" + get_name() + "> " + buf;
-        messages.push_back(msg);
+        case STATUS_MSG:   // New msg
+            messages.push_back(buf);
+            break;
+        
+        case STATUS_MSG_OLD:   // old msg
+            //messages.insert(messages.begin(), buf);
+            break;
     }
 
     mutex.unlock();
@@ -244,7 +250,7 @@ int MessageWindow::event_loop(WINDOW* typebox) {
                 case '\n':   // Enter
                     // If not empty, add
                     if (buffer.length() > 0) {
-                        update_data(buffer);
+                        update_data(buffer, STATUS_NULL);
                         write_to_screen();
 
                         parent->send_message(STATUS_MSG, buffer);

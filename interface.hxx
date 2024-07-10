@@ -15,7 +15,7 @@ class Interface {
     public:
         virtual int start_interface() {return -1;};
         virtual void write_to_screen() {};
-        virtual void update_data(std::string buf) {};
+        virtual void update_data(std::string buf, int type) {};
         void set_parent(Client* c);
         void background();
 
@@ -39,7 +39,7 @@ class MessageWindow: public Interface {
         // Overrides
         int start_interface();
         void write_to_screen();
-        void update_data(std::string buf);
+        void update_data(std::string buf, int type);
 
     private:
         // Overrides

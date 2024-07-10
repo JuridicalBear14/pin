@@ -98,11 +98,11 @@ void Server::sync_client_convo(Database* database, int fd, int cid) {
     p_header header;
     header.uid = -1;
     header.cid = cid;
-    header.status = STATUS_ITEM_COUNT;
+    header.status = STATUS_DB_FETCH;
     header.data = messages.size();
 
-    net::send_header(fd, header);
-    std::cout << messages.size() << "\n";
+    //net::send_header(fd, header);
+
     // Now build generic header to pack and send each one
     header.status = STATUS_MSG_OLD;
     int count = 0;
@@ -110,8 +110,9 @@ void Server::sync_client_convo(Database* database, int fd, int cid) {
     for (std::string& s : messages) {
         header.size = s.size();
         net::send_msg(fd, header, s);
-        std::cout << "Sent\n";
     }
+
+    std::cout << "Sync complete\n";
 }
 
 int Server::nextindex() {
@@ -188,7 +189,6 @@ void Server::msg_relay() {
                         // Dispatch thread to catch client up so we can get back to listening
                         std::cout << "Sync client " << names[i] << " with convo " << header.cid << "\n";
                         sync_client_convo(database, pollfds[i].fd, header.cid);
-                        std::cout << "end\n";
                         break;
 
                     case STATUS_MSG: 

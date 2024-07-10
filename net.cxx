@@ -9,7 +9,7 @@ int net::read_msg(int fd, p_header& header, std::string& str) {
         return 0;
     }
 
-    int size = header.size % MAXMSG;    // % MAXMSG in case somehow bigger than max
+    int size = header.size;    // % MAXMSG in case somehow bigger than max
     int bytes_read;
 
     // If something else to read, read it
@@ -47,20 +47,24 @@ int net::send_msg(int fd, p_header header, std::string buf) {
 
 /* Send just header to remote */
 int net::send_header(int fd, p_header header) {
-    int ret = send(fd, &header, sizeof(header), 0);
+    int ret = send(fd, &header, sizeof(p_header), 0);
 
     return ret;
 }
 
 /* Read just a header */
 int net::read_header(int fd, p_header& header) {
-    int ret = read(fd, &header, sizeof(header));
+    int ret = read(fd, &header, sizeof(p_header));
 
     return ret;
 }
 
 /* Read just the data of a message (when the header was already read) */
 int net::read_data(int fd, int size, std::string& data) {
+    if (size < 1) {
+        return -1;
+    }
+
     char buf[size + 1];   // +1 to allow space for null byte
     memset(buf, 0, sizeof(buf));
 

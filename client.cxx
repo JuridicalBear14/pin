@@ -23,7 +23,7 @@ void Client::interface_handler() {
 
         std::vector<std::string> s;
         read_convo(choice, s);
-
+        //continue;
         int ret = interface->start_interface();
 
         if (ret == EXIT_NONE) {
@@ -46,11 +46,11 @@ void Client::init() {
     p_header header;
     std::string buf;
 
-    net::read_msg(client_fd, header, buf);
+    int s = net::read_msg(client_fd, header, buf);
     tempbuf = buf;
 }
 
-/* Read a convo's data from server */
+/* Request a convo's data from server */
 void Client::read_convo(int cid, std::vector<std::string>& str) {
     // Send request to server
     p_header req;
@@ -60,20 +60,6 @@ void Client::read_convo(int cid, std::vector<std::string>& str) {
     req.uid = -1;
 
     net::send_header(client_fd, req);
-
-    // Read how many messages to expect
-    std::string buf;
-    p_header header;
-    net::read_header(client_fd, header);
-
-    // Loop and collect messages
-    int message_count = header.data;
-    for (int i = 0; i < message_count; i++) {
-        int ret = net::read_msg(client_fd, header, buf);
-        std::cout << "read\n";
-        interface->update_data(buf);
-        std::cout << "update\n";
-    }
 }
 
 void Client::send_message(int status, std::string buf) {
@@ -98,9 +84,19 @@ void Client::set_client_fd(int fd) {
 void Client::recieve() {
     std::string str;
     p_header header;
-    
-    while (net::read_msg(client_fd, header, str) > 0) {
-        interface->update_data(str);
-        interface->write_to_screen();
+
+    // Read headers until socket close
+    while (net::read_header(client_fd, header) > 0) {
+        // Figure out msg type
+        switch (header.status) {
+            case STATUS_MSG:
+            case STATUS_MSG_OLD:
+                if (net::read_data(client_fd, header.size, str) > 0) {
+                    //std::cout << str.length() << "\n";
+                    interface->update_data(str, header.status);
+                    interface->write_to_screen();
+                }
+                break;
+        }
     }
 }
