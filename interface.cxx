@@ -48,12 +48,11 @@ std::string Interface::get_name() {
 
 /* Write all data to screen */
 void MessageWindow::write_to_screen() {
+    mutex.lock();
     int line = MESSAGE_BOX_HEIGHT - 1;   // Line to add to, starts at bottom
 
     // Clear message_box
     clear_window(message_box, MESSAGE_BOX_HEIGHT);
-
-    mutex.lock();
 
     int line_height;
     for (int i = messages.size() - 1 - display_offset; i >= 0; i--) {
@@ -75,6 +74,12 @@ void MessageWindow::write_to_screen() {
 /* Add message to list */
 void MessageWindow::update_data(std::string buf, int type) {
     mutex.lock();
+
+    // If somehow empty string, discard
+    if (buf.length() < 1) {
+        mutex.unlock();
+        return;
+    }
     
     switch (type) {
         case STATUS_NULL:   // Local
@@ -87,6 +92,7 @@ void MessageWindow::update_data(std::string buf, int type) {
         
         case STATUS_MSG_OLD:   // old msg
             //messages.insert(messages.begin(), buf);
+            messages.push_back(buf);
             break;
     }
 
@@ -94,13 +100,11 @@ void MessageWindow::update_data(std::string buf, int type) {
 }
 
 
-/* Clears a window's contents */
+/* Clears a window's contents (no mutex b/c called under mutex) */
 void MessageWindow::clear_window(WINDOW* win, int height) {
     // Create clearing string (C style because leagacy and it works)
     char blanks[MESSAGE_BOX_WIDTH];
     sprintf(blanks, "%*c", MESSAGE_BOX_WIDTH, ' ');
-
-    mutex.lock();
 
     // Clear each line
     for (int i = 0; i < height; i++) {
@@ -108,8 +112,6 @@ void MessageWindow::clear_window(WINDOW* win, int height) {
     }
 
     wrefresh(win);
-
-    mutex.unlock();
 }
 
 /* Create and draw a window */
@@ -168,6 +170,10 @@ int MessageWindow::create_screen() {
 
     // Refresh everything
     wrefresh(typebox);
+
+    // Fetch messages from server
+    std::vector<std::string> s;
+    parent->fetch_convo(s);
 
     // Draw any messages
     write_to_screen();
@@ -255,8 +261,10 @@ int MessageWindow::event_loop(WINDOW* typebox) {
 
                         parent->send_message(STATUS_MSG, buffer);
 
+                        mutex.lock();
                         clear_window(typebox, TYPEBOX_HEIGHT);
                         buffer.clear();
+                        mutex.unlock();
 
                         y = 0; x = 0;
                     }

@@ -21,9 +21,6 @@ void Client::interface_handler() {
         int choice = std::atoi(buf.c_str());
         cid = choice;
 
-        std::vector<std::string> s;
-        read_convo(choice, s);
-        //continue;
         int ret = interface->start_interface();
 
         if (ret == EXIT_NONE) {
@@ -51,7 +48,7 @@ void Client::init() {
 }
 
 /* Request a convo's data from server */
-void Client::read_convo(int cid, std::vector<std::string>& str) {
+void Client::fetch_convo(std::vector<std::string>& str) {
     // Send request to server
     p_header req;
     req.cid = cid;

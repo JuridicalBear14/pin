@@ -11,12 +11,11 @@ class Client {
         void recieve();
         void set_client_fd(int fd);
         void init();
+        void fetch_convo(std::vector<std::string>& str);
 
         std::string name;
 
     private:
-        void read_convo(int cid, std::vector<std::string>& str);
-
         Interface* interface;
         int client_fd;
         std::mutex mut;
