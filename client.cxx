@@ -4,9 +4,15 @@ Client::Client(std::string name, int fd) {
     interface = new MessageWindow();
     interface->set_parent(this);
     client_fd = fd;
-    this->name = name;
+    user.cid = -1;
 
-    uid = -1;   // NOT IMPLEMENTED
+    // Set name
+    strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
+}
+
+/* Get username as a std::string */
+std::string Client::getname() {
+    return std::string(user.name);
 }
 
 /* Create and manage all interfaces */
@@ -19,7 +25,7 @@ void Client::interface_handler() {
         std::cin >> buf;
 
         int choice = std::atoi(buf.c_str());
-        cid = choice;
+        user.cid = choice;
 
         int ret = interface->start_interface();
 
@@ -37,7 +43,7 @@ void Client::interface_handler() {
 /* Initialize connection to server */
 void Client::init() {
     // Send name over
-    send_message(STATUS_CONNECT, name.c_str());
+    send_message(STATUS_CONNECT, user.name);
 
     // Now recieve message detailing convos
     p_header header;
@@ -45,13 +51,14 @@ void Client::init() {
 
     int s = net::read_msg(client_fd, header, buf);
     tempbuf = buf;
+    user.uid = header.uid;
 }
 
 /* Request a convo's data from server */
 void Client::fetch_convo(std::vector<std::string>& str) {
     // Send request to server
     p_header req;
-    req.cid = cid;
+    req.cid = user.cid;
     req.size = 0;
     req.status = STATUS_DB_FETCH;
     req.uid = -1;
@@ -62,8 +69,8 @@ void Client::fetch_convo(std::vector<std::string>& str) {
 void Client::send_message(int status, std::string buf) {
     // Construct header
     p_header header;
-    header.uid = uid;
-    header.cid = cid;   // NOT IMPLEMENTED
+    header.uid = user.uid;
+    header.cid = user.cid;   // NOT IMPLEMENTED
     header.status = status;
     header.size = buf.length();
 

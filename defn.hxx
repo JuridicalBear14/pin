@@ -45,3 +45,11 @@ struct p_header {
     int data;   // Small data field for various uses
     uint64_t size;   // Size of following data (bytes)
 };
+
+
+// Struct for user data
+typedef struct User {
+    int uid;   // User id
+    int cid;    // Current cid
+    char name[NAMELEN + 1];  // Name  (+1 for null-term)
+} User;

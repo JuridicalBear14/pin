@@ -109,8 +109,12 @@ int DB_FS::build_db() {
     index.close();
 
     // Create the convo file index to hold conversation data
-    std::ofstream create(path + "/convo_index", std::ios::app);
-    create.close();
+    std::ofstream create_index(path + "/convo_index", std::ios::app);
+    create_index.close();
+
+    // Create user data file
+    std::ofstream create_users(path + "/users", std::ios::app);
+    create_users.close();
 
     // Remember to set path for class!
     this->db_path = path;
@@ -141,10 +145,56 @@ int DB_FS::generate_id() {
     return max + 1;
 }
 
-int DB_FS::add_user() {
-    // NOT IMPLEMENTED
+/* Create a new user for the db */
+int DB_FS::add_user(std::string name, int id) {
+    mut.lock();
+
+    // Open user file
+    std::fstream f(db_path + "/users", std::ios::app);
+
+    std::string buf = std::to_string(id) + ' ' + name;
+    f << buf << std::endl;
+    
+    f.close();
+    mut.unlock();
+    return id;
+}
+
+/* Lookup user id by name, if not found and create is true: create new user and return the new id */
+int DB_FS::get_user_id(std::string name, bool create) {
+    // Loop through all users in file, either find them or generate new id of max+1
+    std::ifstream f(db_path + "/users");
+    std::string buf;
+    int max = 0;
+
+    int id;
+    std::string u_name;
+    while (std::getline(f, buf)) {
+        // Split into name and id
+        id = std::atoi(buf.substr(0, buf.find(' ')).c_str());
+        u_name = buf.substr(buf.find(' ') + 1, buf.length());
+
+        // Check if we found the user
+        if (name == u_name) {
+            return id;
+        }
+
+        // Otherwise update max
+        max = id > max ? id : max;
+    }
+
+    f.close();
+
+    // No user found, either create new or return err
+    if (create) {
+        id = max + 1;
+        return add_user(name, id);
+    }
+
+
     return -1;
 }
+
 
 /* Write a message to the database and return bytes written */
 int DB_FS::write_msg(int cid, p_header header, std::string str) {

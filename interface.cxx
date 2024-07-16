@@ -41,7 +41,7 @@ void Interface::background() {
 
 /* Get my username from parent client */
 std::string Interface::get_name() {
-    return parent->name;
+    return parent->getname();
 }
 
 // ********************************** Message box interface implementation *********************************************** //

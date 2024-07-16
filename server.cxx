@@ -51,6 +51,10 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
     }
 }
 
+/* User a user's name as an std::string */
+std::string Server::get_username(int ix) {
+    return std::string(users[ix].name);
+}
 
 /* Initial connection to client, read their name and then transfer convo history */
 void Server::init_connection(int ix) {
@@ -60,18 +64,28 @@ void Server::init_connection(int ix) {
 
     net::read_msg(pollfds[ix].fd, header, str);
 
+    // Lookup user in db (and create if not found)
+    int uid = database->get_user_id(str, true);
+
+    if (uid == -1) {
+        // I have no idea what to do here
+    }
+
     mut.lock();
-    names.push_back(str);
+    // Set user data
+    strncpy(users[ix].name, str.c_str(), NAMELEN + 1);   // +1 for null
+    users[ix].uid = uid;
+    users[ix].cid = DB_NONE;
     mut.unlock();
 
-    std::cout << "Name recieved: " + names[names.size() - 1] + "\n";
+    std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
 
     // Dispatch thread to catch client up so we can get back to listening
-    auto handle = std::async(std::launch::async, sync_client_db, database, pollfds[ix].fd);
+    auto handle = std::async(std::launch::async, sync_client_db, database, pollfds[ix].fd, uid);
 }
 
 /* Catch the client up on the contents of the db */
-void Server::sync_client_db(Database* database, int fd) {
+void Server::sync_client_db(Database* database, int fd, int uid) {
     // Get items
     std::string items;
     database->get_convo_index(items);
@@ -80,7 +94,7 @@ void Server::sync_client_db(Database* database, int fd) {
 
     // Send to client as list
     p_header header;
-    header.uid = -1;
+    header.uid = uid;
     header.cid = -1;
     header.status = STATUS_CONNECT;
     header.size = items.size();
@@ -89,14 +103,14 @@ void Server::sync_client_db(Database* database, int fd) {
 }
 
 /* Sync client with contents of convo */
-void Server::sync_client_convo(Database* database, int fd, int cid) {
+void Server::sync_client_convo(Database* database, int fd, int cid, int uid) {
     // Get message list
     std::vector<std::string> messages;
     int ret = database->get_all_messages(cid, messages);
 
     // Send intitial header to tell client how many messages to expect
     p_header header;
-    header.uid = -1;
+    header.uid = uid;
     header.cid = cid;
     header.status = STATUS_DB_FETCH;
     header.data = messages.size();
@@ -130,22 +144,22 @@ int Server::nextindex() {
     return -1;
 }
 
-/* Send message to all other users */
+/* Send message to all other users in the same convo */
 void Server::sendall(int ix, std::string buf) {
     // Construct header
     p_header header;
-    header.uid = -1;   // NOT IMPLEMENTED
-    header.cid = -1;   // NOT IMPLEMENTED
+    header.uid = users[ix].uid;
+    header.cid = users[ix].cid;
     header.status = STATUS_MSG;
 
     mut.lock();
 
     // Construct message
-    std::string msg = "<" + names[ix] + "> " + buf;
+    std::string msg = "<" + get_username(ix) + "> " + buf;
     header.size = msg.length();
 
     for (int i = 0; i < MAXUSR; i++) {
-        if (pollfds[i].fd != -1 && i != ix) {
+        if (pollfds[i].fd != -1 && users[i].cid == header.cid && i != ix) {
             // Send to socket
             net::send_msg(pollfds[i].fd, header, msg);
         }
@@ -175,20 +189,26 @@ void Server::msg_relay() {
                     close(pollfds[i].fd);
                     pollfds[i].fd = -1;
 
+                    // Wipe user entry
+                    users[i].uid = -1;
+                    users[i].cid = -1;
+                    users[i].name[0] = 0;
+
                     mut.unlock();
 
                     printf("Closed slot: %d\n", i);
                     continue;
                 }
 
-                std::cout << "Message recieved from user: " << names[i] <<  ", Type: " << header.status << "\n";
+                std::cout << "Message recieved from user: " << get_username(i) <<  ", uid: " << users[i].uid << ", Type: " << header.status << "\n";
 
                 // Check header
                 switch (header.status) {
                     case STATUS_DB_FETCH:
                         // Dispatch thread to catch client up so we can get back to listening
-                        std::cout << "Sync client " << names[i] << " with convo " << header.cid << "\n";
-                        sync_client_convo(database, pollfds[i].fd, header.cid);
+                        std::cout << "Sync client " << get_username(i) << " with convo " << header.cid << "\n";
+                        users[i].cid = header.cid;
+                        sync_client_convo(database, pollfds[i].fd, header.cid, users[i].cid);
                         break;
 
                     case STATUS_MSG: 
@@ -196,7 +216,7 @@ void Server::msg_relay() {
                         net::read_data(pollfds[i].fd, header.size, str);
 
                         // Write to db
-                        std::string msg = "<" + names[i] + "> " + str;
+                        std::string msg = "<" + get_username(i) + "> " + str;
                         database->write_msg(header.cid, header, msg);
 
                         // Send message to all others

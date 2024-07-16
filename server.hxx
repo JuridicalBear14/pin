@@ -23,14 +23,15 @@ class Server {
         void sendall(int ix, std::string);
         void init_connection(int ix);
         void msg_relay();
-        static void sync_client_db(Database* database, int fd);
-        static void sync_client_convo(Database* database, int fd, int cid);
+        static void sync_client_db(Database* database, int fd, int uid);
+        static void sync_client_convo(Database* database, int fd, int cid, int uid);
+        std::string get_username(int ix);
 
         std::mutex mut;
 
         // Array of fds to monitor and names
         struct pollfd pollfds[MAXUSR];
-        std::vector<std::string> names;
+        User users[MAXUSR];
 
         // Connected database
         Database* database;

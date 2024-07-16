@@ -12,15 +12,13 @@ class Client {
         void set_client_fd(int fd);
         void init();
         void fetch_convo(std::vector<std::string>& str);
-
-        std::string name;
+        std::string getname();
 
     private:
         Interface* interface;
         int client_fd;
         std::mutex mut;
-        int uid;
-        int cid;  // Current cid
+        User user;
 
         std::string tempbuf;
 };
