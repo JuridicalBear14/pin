@@ -24,6 +24,7 @@
 #define MAXUSR 10
 #define NAMELEN 15     // Max name length
 #define MAXMSG 1024    // Max message length
+#define MAX_CONVO_USERS 10  // Max number of users for one convo (other than all)
 
 // Exit code stuff for interface and client
 #define EXIT_NONE 0   // Exit program fully
@@ -53,3 +54,11 @@ typedef struct User {
     int cid;    // Current cid
     char name[NAMELEN + 1];  // Name  (+1 for null-term)
 } User;
+
+
+/* Struct for convo data */
+typedef struct Convo {
+    int cid;
+    int users[MAX_CONVO_USERS];
+    char name[NAMELEN + 1];   // +1 for null-term
+} Convo;

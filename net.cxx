@@ -74,6 +74,17 @@ int net::read_data(int fd, int size, std::string& data) {
     return bytes_read;
 }
 
+/* Read just the data of a message (when the header was already read) into a generic pointer */
+int net::read_data(int fd, int size, void* data) {
+    if (size < 1) {
+        return -1;
+    }
+
+    int bytes_read = read(fd, data, size);
+
+    return bytes_read;
+}
+
 /* Build a header struct from given args and return it */
 p_header net::build_header() {
     // NOT IMPLEMENTED

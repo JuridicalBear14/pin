@@ -12,6 +12,7 @@ class Client {
         void set_client_fd(int fd);
         void init();
         void fetch_convo(std::vector<std::string>& str);
+        int fetch_convo_options(std::vector<Convo>& v);
         std::string getname();
 
     private:

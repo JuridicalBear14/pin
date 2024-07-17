@@ -19,6 +19,12 @@ std::string Client::getname() {
 void Client::interface_handler() {
     // Run until exit code break
     while (true) {
+        // First we fetch all convo options
+        std::vector<Convo> options;
+        int count = fetch_convo_options(options);
+
+        // Now list options to user
+
         std::cout << tempbuf << "\n";
 
         std::string buf;
@@ -52,6 +58,11 @@ void Client::init() {
     int s = net::read_msg(client_fd, header, buf);
     tempbuf = buf;
     user.uid = header.uid;
+}
+
+/* Fetch all convo options from server and return the count */
+int Client::fetch_convo_options(std::vector<Convo>& v) {
+    return -1;
 }
 
 /* Request a convo's data from server */
@@ -96,7 +107,6 @@ void Client::recieve() {
             case STATUS_MSG:
             case STATUS_MSG_OLD:
                 if (net::read_data(client_fd, header.size, str) > 0) {
-                    //std::cout << str.length() << "\n";
                     interface->update_data(str, header.status);
                     interface->write_to_screen();
                 }
