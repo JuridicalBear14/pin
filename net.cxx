@@ -45,6 +45,27 @@ int net::send_msg(int fd, p_header header, std::string buf) {
     return d_ret;
 }
 
+/* Send a message to a client (any type) */
+int net::send_msg(int fd, p_header header, void* buf) {
+    // Make sure data isn't too big
+    if (header.size > MAXMSG) {
+        return -2;
+    }
+
+    // Send header
+    int h_ret = send(fd, &header, sizeof(header), 0);
+
+    // Check for success
+    if (h_ret < sizeof(p_header)) {
+        return -1;
+    }
+
+    // Send message
+    int d_ret = send(fd, buf, header.size, 0);
+
+    return d_ret;
+}
+
 /* Send just header to remote */
 int net::send_header(int fd, p_header header) {
     int ret = send(fd, &header, sizeof(p_header), 0);

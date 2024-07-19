@@ -4,6 +4,7 @@
 class net {
     public:
         static int send_msg(int fd, p_header header, std::string buf);
+        static int send_msg(int fd, p_header header, void* buf);
         static int read_msg(int fd, p_header& header, std::string& buf);
         static int read_data(int fd, int size, std::string& data);
         static int read_data(int fd, int size, void* data);

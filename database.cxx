@@ -36,7 +36,6 @@ DB_FS::DB_FS(int id) {
         db_path = "data/pin_db_" + std::to_string(db_id) + "/";
 
         std::cout << "Using default database: " << db_path << "\n";
-
         return;
     }
 
@@ -108,8 +107,13 @@ int DB_FS::build_db() {
     index << new_id << std::endl;
     index.close();
 
-    // Create the convo file index to hold conversation data
-    std::ofstream create_index(path + "/convo_index", std::ios::app);
+    // Create the convo file index to hold conversation data and write header
+    std::ofstream create_index(path + "/convo_index", std::ios::binary);
+    struct pin_db_header h;
+    h.itemsize = sizeof(Convo);
+    h.itemno = 0;   // Nothing for now
+    h.type = FILE_TYPE_CONVO_INDEX;
+    create_index.write((char*) &h, sizeof(h));
     create_index.close();
 
     // Create user data file
@@ -236,21 +240,103 @@ int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
 }
 
 /* Fetch entries for convo index */
-int DB_FS::get_convo_index(std::string& items) {
+int DB_FS::get_convo_index(std::vector<Convo>& items) {
     if (db_id == DB_NONE) {
         return DB_NONE;
     }
 
     mut.lock();
 
-    // Open convo
-    std::ifstream f(db_path + "convo_index");
-    std::string buf;
-    
-    while (std::getline(f, buf)) {
-        items += buf + " ";
+    // Open index
+    std::fstream f(db_path + "convo_index", std::ios::in | std::ios::out | std::ios::binary);
+
+    // Read header
+    int count = read_file_header(FILE_TYPE_CONVO_INDEX, sizeof(Convo));
+
+    // Seek to first entry
+    f.seekg(sizeof(pin_db_header), f.beg);
+
+    // Now read all items
+    Convo c;
+    for (int i = 0; i < count; i++) {
+        f.read((char*) &c, sizeof(c));
+        items.push_back(c);   
     }
+
+    f.close();
 
     mut.unlock();
     return 0;
+}
+
+/* Create a new convo file and update the index */
+int DB_FS::create_convo(std::string name, std::vector<int> users) {
+    if (db_id == DB_NONE) {
+        return DB_NONE;
+    }
+    mut.lock();
+
+    // Open index
+    std::fstream f(db_path + "convo_index", std::ios::app | std::ios::out | std::ios::binary);
+
+    // Read header
+    int count = read_file_header(FILE_TYPE_CONVO_INDEX, sizeof(Convo));
+
+    Convo c;
+    c.cid = count + 1;
+    strncpy(c.name, name.c_str(), NAMELEN + 1);   // +1 for null
+
+    // Check users isn't too big
+    if (users.size() > MAX_CONVO_USERS) {
+        return -1;
+    }
+
+    std::copy(users.begin(), users.end(), c.users);
+
+    // Seek to the end of the file and write the convo
+    f.seekg(0, f.end);
+    f.write((char*) &c, sizeof(c));
+
+    f.close();
+
+    // Update the file header to reflect the new item
+    update_file_header(c.cid);
+
+    // Finally, create the convo file
+    std::ofstream create(db_path + "convo_" + std::to_string(c.cid));
+    create.close();
+
+    mut.unlock();
+    return 0;
+}
+
+/* Update the item count for a file header */
+int DB_FS::update_file_header(int count) {
+    // Open file and read current header
+    std::fstream f(db_path + "convo_index", std::ios::in | std::ios::out | std::ios::binary);
+    pin_db_header h;
+    f.read((char*) &h, sizeof(h));
+
+    // Seet to start and write updated header
+    f.seekg(0, f.beg);
+    h.itemno = count;
+    f.write((char*) &h, sizeof(h));
+
+    return h.itemno;
+}
+
+/* Read the header of a given file and return errors for wrong data, otherwise return item count */
+int DB_FS::read_file_header(int type, int size) {
+    std::fstream f(db_path + "convo_index", std::ios::in | std::ios::out | std::ios::binary);
+
+    struct pin_db_header h;
+    f.read((char*) &h, sizeof(h));
+    f.close();
+
+    if (h.type != type || h.version != PIN_VERSION || h.itemsize != size) {
+        std::cout << "err\n";
+        return -1;
+    }
+
+    return h.itemno;
 }

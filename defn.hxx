@@ -20,6 +20,8 @@
 #include <algorithm>
 #include <future>
 
+#define PIN_VERSION 1
+
 #define DEFAULT_PORT 5555
 #define MAXUSR 10
 #define NAMELEN 15     // Max name length
@@ -37,6 +39,11 @@
 #define STATUS_MSG_OLD 3   // Message being sent to catch up to db
 #define STATUS_ITEM_COUNT 4   // Message that defines a count of following messages, rather than a number of bytes
 #define STATUS_DB_FETCH 5   // Client requesting data from db (convo id)
+#define STATUS_DB_SYNC 6   // Sync db contents with client
+
+// File type constants
+#define FILE_TYPE_NULL 0
+#define FILE_TYPE_CONVO_INDEX 1
 
 // Struct for communication header
 struct p_header {
@@ -47,6 +54,15 @@ struct p_header {
     uint64_t size;   // Size of following data (bytes)
 };
 
+
+// Struct for file headers
+struct pin_db_header {
+    char magic[4] = "PIN";
+    int version = PIN_VERSION;
+    int type;
+    int itemsize;
+    int itemno;
+};
 
 // Struct for user data
 typedef struct User {

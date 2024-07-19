@@ -23,12 +23,17 @@ void Client::interface_handler() {
         std::vector<Convo> options;
         int count = fetch_convo_options(options);
 
+        std::cout << "Convo option(s): \n";
         // Now list options to user
-
-        std::cout << tempbuf << "\n";
+        for (int i = 1; i <= count; i++) {
+            std::cout << "[" << i << "] " << options[i - 1].name << " | ";
+        }
+        std::cout << "[0] Create New\n";
 
         std::string buf;
         std::cin >> buf;
+
+        // Make sure it's an int
 
         int choice = std::atoi(buf.c_str());
         user.cid = choice;
@@ -51,22 +56,36 @@ void Client::init() {
     // Send name over
     send_message(STATUS_CONNECT, user.name);
 
-    // Now recieve message detailing convos
+    // Recieve user id
     p_header header;
-    std::string buf;
-
-    int s = net::read_msg(client_fd, header, buf);
-    tempbuf = buf;
+    net::read_header(client_fd, header);
     user.uid = header.uid;
 }
 
 /* Fetch all convo options from server and return the count */
 int Client::fetch_convo_options(std::vector<Convo>& v) {
-    return -1;
+    // First we send the request
+    p_header header;
+    header.uid = user.uid;
+    header.status = STATUS_DB_SYNC; 
+
+    std::unique_lock<std::mutex> lock(mut);
+
+    net::send_header(client_fd, header);
+
+    // Then wait for the socket to recieve every packet
+    convo_waiter.wait(lock);
+
+    // Now transfer to arg vector and clear convo_transfer
+    v = convo_vector;
+    convo_vector.clear();
+
+    mut.unlock();
+    return v.size();
 }
 
 /* Request a convo's data from server */
-void Client::fetch_convo(std::vector<std::string>& str) {
+void Client::request_convo(std::vector<std::string>& str) {
     // Send request to server
     p_header req;
     req.cid = user.cid;
@@ -99,6 +118,7 @@ void Client::set_client_fd(int fd) {
 void Client::recieve() {
     std::string str;
     p_header header;
+    Convo c;
 
     // Read headers until socket close
     while (net::read_header(client_fd, header) > 0) {
@@ -111,6 +131,19 @@ void Client::recieve() {
                     interface->write_to_screen();
                 }
                 break;
+            case STATUS_DB_SYNC:
+                
+                // Read into vector
+                if (net::read_data(client_fd, header.size, &c) > 0) {
+                    mut.lock();
+                    convo_vector.push_back(c);
+                    mut.unlock();
+
+                    // If size equals total size, then we're done
+                    if (convo_vector.size() >= header.data) {
+                        convo_waiter.notify_all();
+                    }
+                }
         }
     }
 }

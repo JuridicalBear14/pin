@@ -11,7 +11,7 @@ class Client {
         void recieve();
         void set_client_fd(int fd);
         void init();
-        void fetch_convo(std::vector<std::string>& str);
+        void request_convo(std::vector<std::string>& str);
         int fetch_convo_options(std::vector<Convo>& v);
         std::string getname();
 
@@ -20,6 +20,8 @@ class Client {
         int client_fd;
         std::mutex mut;
         User user;
-
-        std::string tempbuf;
+        
+        // Vars to synchronizing convos
+        std::vector<Convo> convo_vector;
+        std::condition_variable convo_waiter;
 };

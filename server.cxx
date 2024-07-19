@@ -80,26 +80,34 @@ void Server::init_connection(int ix) {
 
     std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
 
+    // Now send back header with uid
+    header.uid = uid;
+    net::send_header(pollfds[ix].fd, header);
+
     // Dispatch thread to catch client up so we can get back to listening
-    auto handle = std::async(std::launch::async, sync_client_db, database, pollfds[ix].fd, uid);
+    //auto handle = std::async(std::launch::async, sync_client_db, database, pollfds[ix].fd, uid);
 }
 
 /* Catch the client up on the contents of the db */
 void Server::sync_client_db(Database* database, int fd, int uid) {
+    std::cout << "Sync user " << uid << " with db\n";
+
     // Get items
-    std::string items;
+    std::vector<Convo> items;
     database->get_convo_index(items);
 
-    items = "<Convo Options> " + items;
-
-    // Send to client as list
     p_header header;
     header.uid = uid;
-    header.cid = -1;
-    header.status = STATUS_CONNECT;
-    header.size = items.size();
+    header.status = STATUS_DB_SYNC;
+    header.data = items.size();
+    header.size = sizeof(Convo);
 
-    net::send_msg(fd, header, items);
+    // Send all convos
+    for (Convo c : items) {
+        net::send_msg(fd, header, &c);
+    }
+
+    std::cout << "Sync complete\n";
 }
 
 /* Sync client with contents of convo */
@@ -216,11 +224,15 @@ void Server::msg_relay() {
                         net::read_data(pollfds[i].fd, header.size, str);
 
                         // Write to db
-                        std::string msg = "<" + get_username(i) + "> " + str;
-                        database->write_msg(header.cid, header, msg);
+                        str = "<" + get_username(i) + "> " + str;
+                        database->write_msg(header.cid, header, str);
 
                         // Send message to all others
                         sendall(i, str);
+                        break;
+                    
+                    case STATUS_DB_SYNC:
+                        sync_client_db(database, pollfds[i].fd, header.uid);
                         break;
                 }
 

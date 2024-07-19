@@ -173,7 +173,7 @@ int MessageWindow::create_screen() {
 
     // Fetch messages from server
     std::vector<std::string> s;
-    parent->fetch_convo(s);
+    parent->request_convo(s);
 
     // Draw any messages
     write_to_screen();
