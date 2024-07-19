@@ -163,13 +163,13 @@ void Server::sendall(int ix, std::string buf) {
     mut.lock();
 
     // Construct message
-    std::string msg = "<" + get_username(ix) + "> " + buf;
-    header.size = msg.length();
+    //std::string msg = "<" + get_username(ix) + "> " + buf;
+    header.size = buf.length();
 
     for (int i = 0; i < MAXUSR; i++) {
         if (pollfds[i].fd != -1 && users[i].cid == header.cid && i != ix) {
             // Send to socket
-            net::send_msg(pollfds[i].fd, header, msg);
+            net::send_msg(pollfds[i].fd, header, buf);
         }
     }
 
