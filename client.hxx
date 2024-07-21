@@ -16,6 +16,8 @@ class Client {
         std::string getname();
 
     private:
+        int request_new_convo(std::string name);
+
         Interface* interface;
         int client_fd;
         std::mutex mut;

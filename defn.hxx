@@ -40,6 +40,7 @@
 #define STATUS_ITEM_COUNT 4   // Message that defines a count of following messages, rather than a number of bytes
 #define STATUS_DB_FETCH 5   // Client requesting data from db (convo id)
 #define STATUS_DB_SYNC 6   // Sync db contents with client
+#define STATUS_CONVO_CREATE 7   // Create a new convo with name following
 
 // File type constants
 #define FILE_TYPE_NULL 0
