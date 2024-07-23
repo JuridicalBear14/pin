@@ -269,8 +269,8 @@ int DB_FS::get_convo_index(std::vector<Convo>& items) {
     return 0;
 }
 
-/* Create a new convo file and update the index */
-int DB_FS::create_convo(std::string name, std::vector<int> users) {
+/* Create a new convo file (from a convo struct) and update the index and cid */
+int DB_FS::create_convo(Convo& c) {
     if (db_id == DB_NONE) {
         return DB_NONE;
     }
@@ -282,16 +282,7 @@ int DB_FS::create_convo(std::string name, std::vector<int> users) {
     // Read header
     int count = read_file_header(FILE_TYPE_CONVO_INDEX, sizeof(Convo));
 
-    Convo c;
     c.cid = count + 1;
-    strncpy(c.name, name.c_str(), NAMELEN + 1);   // +1 for null
-
-    // Check users isn't too big
-    if (users.size() > MAX_CONVO_USERS) {
-        return -1;
-    }
-
-    std::copy(users.begin(), users.end(), c.users);
 
     // Seek to the end of the file and write the convo
     f.seekg(0, f.end);
@@ -307,7 +298,7 @@ int DB_FS::create_convo(std::string name, std::vector<int> users) {
     create.close();
 
     mut.unlock();
-    return 0;
+    return c.cid;
 }
 
 /* Update the item count for a file header */

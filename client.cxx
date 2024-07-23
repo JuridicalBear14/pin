@@ -42,12 +42,12 @@ void Client::interface_handler() {
             continue;
         } else if (choice == 0) {   // New convo
             // Get name from user
-            std::cout << "Please enter name for new convo (15 character max):\n";
+            std::cout << "Please enter name for new convo (15 character max, no spaces):\n";
             std::cin >> buf;
 
             // Shorten to 15 chars (if necessary)
             if (buf.size() > 15) {
-                buf.substr(0, 15);
+                buf.substr(0, 14);
             }
             
             // Now request a new convo
@@ -91,7 +91,6 @@ int Client::fetch_convo_options(std::vector<Convo>& v) {
     std::unique_lock<std::mutex> lock(mut);
 
     net::send_header(client_fd, header);
-
     // Then wait for the socket to recieve every packet
     convo_waiter.wait(lock);
 
@@ -117,21 +116,28 @@ void Client::request_convo(std::vector<std::string>& str) {
 
 /* Request the server to make a new convo and return its cid */
 int Client::request_new_convo(std::string buf) {
-    // First we send the request
+    // First build convo struct
+    Convo c;
+    c.cid = -1;
+    c.global = true;    // NOT IMPLEMENTED
+    strncpy(c.name, buf.c_str(), NAMELEN);
+    c.name[NAMELEN] = 0;   // Make sure null at the end
+
+    // Then we send the request
     p_header header;
     header.uid = user.uid;
-    header.size = buf.size();
+    header.size = sizeof(c);
     header.status = STATUS_CONVO_CREATE; 
 
     std::unique_lock<std::mutex> lock(mut);
 
-    net::send_msg(client_fd, header, buf);
+    net::send_msg(client_fd, header, &c);
 
     // Then wait for the socket to recieve every packet
     convo_waiter.wait(lock);
 
     // Now transfer to arg vector and clear convo_transfer
-    Convo c = convo_vector[0];   // Should only be 1 entry
+    c = convo_vector[0];   // Should only be 1 entry
     convo_vector.clear();
 
     mut.unlock();
@@ -174,6 +180,12 @@ void Client::recieve() {
                 }
                 break;
             case STATUS_DB_SYNC:
+                // If empty
+                if (header.data == 0) {
+                    convo_waiter.notify_all();
+                    break;
+                }
+
                 // Read into vector
                 if (net::read_data(client_fd, header.size, &c) > 0) {
                     mut.lock();
@@ -185,6 +197,7 @@ void Client::recieve() {
                         convo_waiter.notify_all();
                     }
                 }
+                break;
 
             case STATUS_CONVO_CREATE:
                 // Read into vector
@@ -196,6 +209,7 @@ void Client::recieve() {
                     // Notify interface to continue
                     convo_waiter.notify_all();
                 }
+                break;
         }
     }
 }

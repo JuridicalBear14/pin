@@ -102,6 +102,12 @@ void Server::sync_client_db(Database* database, int fd, int uid) {
     header.data = items.size();
     header.size = sizeof(Convo);
 
+    // If no convos, just send empty header
+    if (header.data == 0) {
+        header.size = 0;
+        net::send_header(fd, header);
+    }
+
     // Send all convos
     for (Convo c : items) {
         net::send_msg(fd, header, &c);
@@ -181,6 +187,7 @@ void Server::msg_relay() {
     int n;
     std::string str;
     p_header header;
+    Convo c;
 
     // Wait for event
     while ((n = poll(pollfds, MAXUSR, 1000)) != -1) {
@@ -233,6 +240,16 @@ void Server::msg_relay() {
                     
                     case STATUS_DB_SYNC:
                         sync_client_db(database, pollfds[i].fd, header.uid);
+                        break;
+
+                    case STATUS_CONVO_CREATE:
+                        // Read rest of message
+                        net::read_data(pollfds[i].fd, header.size, &c);
+                        // Create the convo
+                        database->create_convo(c);
+
+                        // Now send back the convo with new cid
+                        net::send_msg(pollfds[i].fd, header, &c);
                         break;
                 }
 

@@ -76,6 +76,7 @@ typedef struct User {
 /* Struct for convo data */
 typedef struct Convo {
     int cid;
-    int users[MAX_CONVO_USERS];
+    bool global;   // Whether or not this is open to everyone (if not then users tab gives permission)
+    User users[MAX_CONVO_USERS];
     char name[NAMELEN + 1];   // +1 for null-term
 } Convo;
