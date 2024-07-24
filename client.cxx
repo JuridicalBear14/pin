@@ -33,6 +33,11 @@ void Client::interface_handler() {
         std::string buf;
         std::cin >> buf;
 
+        // Check if quit
+        if (buf.length() == 1 && buf[0] == 'q') {
+            break;
+        }
+
         char* p;
         long choice = std::strtol(buf.c_str(), &p, 10);
 
@@ -41,17 +46,16 @@ void Client::interface_handler() {
             std::cout << "\nPlease input a valid number\n";
             continue;
         } else if (choice == 0) {   // New convo
-            // Get name from user
-            std::cout << "Please enter name for new convo (15 character max, no spaces):\n";
-            std::cin >> buf;
+            Convo c;
+            int ret = build_new_convo(c);
 
-            // Shorten to 15 chars (if necessary)
-            if (buf.size() > 15) {
-                buf.substr(0, 14);
+            // Check for quit
+            if (ret == -1) {
+                break;
             }
             
-            // Now request a new convo
-            user.cid = request_new_convo(buf);
+            // Now request a new convo with this struct
+            user.cid = request_new_convo(c);
         } else {   // Normal
             user.cid = options[choice - 1].cid;   // Remember to get cid from array since numbers are just for selection
         }
@@ -67,6 +71,27 @@ void Client::interface_handler() {
         interface = new MessageWindow();
         interface->set_parent(this);
     }
+}
+
+/* Build a convo from user options, return -1 for quit */
+int Client::build_new_convo(Convo& c) {
+    std::string buf;
+
+    // Get name from user
+    std::cout << "Please enter name for new convo (15 character max, no spaces):\n";
+    std::cin >> buf;
+
+    // Shorten to 15 chars (if necessary)
+    if (buf.size() > 15) {
+        buf.substr(0, 14);
+    }
+
+    c.cid = -1;
+    c.global = true;    // NOT IMPLEMENTED
+    strncpy(c.name, buf.c_str(), NAMELEN);
+    c.name[NAMELEN] = 0;   // Make sure null at the end
+
+    return 0;
 }
 
 /* Initialize connection to server */
@@ -122,32 +147,23 @@ void Client::request_convo(std::vector<std::string>& str) {
 }
 
 /* Request the server to make a new convo and return its cid */
-int Client::request_new_convo(std::string buf) {
-    // First build convo struct
-    Convo c;
-    c.cid = -1;
-    c.global = true;    // NOT IMPLEMENTED
-    strncpy(c.name, buf.c_str(), NAMELEN);
-    c.name[NAMELEN] = 0;   // Make sure null at the end
-
+int Client::request_new_convo(Convo c) {
     // Then we send the request
     p_header header;
     header.uid = user.uid;
     header.size = sizeof(c);
     header.status = STATUS_CONVO_CREATE; 
 
-    std::unique_lock<std::mutex> lock(mut);
+    send_and_wait(header, &c, &convo_waiter);
 
-    net::send_msg(client_fd, header, &c);
-
-    // Then wait for the socket to recieve every packet
-    convo_waiter.wait(lock);
+    mut.lock();
 
     // Now transfer to arg vector and clear convo_transfer
     c = convo_vector[0];   // Should only be 1 entry
     convo_vector.clear();
 
     mut.unlock();
+
     return c.cid;
 }
 
@@ -161,6 +177,17 @@ void Client::send_message(int status, std::string buf) {
 
     // Now call net
     int ret = net::send_msg(client_fd, header, buf);
+}
+
+/* Send a message and then wait for reply */
+void Client::send_and_wait(p_header header, void* buf, std::condition_variable* waiter) {
+    std::unique_lock<std::mutex> lock(mut);
+
+    net::send_msg(client_fd, header, buf);
+
+    // Then wait for the socket to recieve every packet
+    convo_waiter.wait(lock);
+    mut.unlock();
 }
 
 void Client::set_client_fd(int fd) {

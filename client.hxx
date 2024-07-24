@@ -16,7 +16,9 @@ class Client {
         std::string getname();
 
     private:
-        int request_new_convo(std::string name);
+        int request_new_convo(Convo c);
+        int build_new_convo(Convo& c);
+        void send_and_wait(p_header header, void* buf, std::condition_variable* waiter);
 
         Interface* interface;
         int client_fd;
