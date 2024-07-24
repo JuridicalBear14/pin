@@ -17,6 +17,7 @@ class Server {
         void start_server();
         void connection_listener(struct sockaddr_in address, int addrlen);
         void connect_db(Database* database);
+        static void log(std::string str);
 
     private:
         int nextindex();

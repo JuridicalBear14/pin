@@ -22,23 +22,34 @@ void Server::start_server() {
     msg_relay();
 }
 
+/* Write a message to the output destination */
+void Server::log(std::string str) {
+    // NOT IMPLEMENTED
+}
+
 /* Listen and accept incoming connections */
 void Server::connection_listener(struct sockaddr_in address, int addrlen) {
     // Wait and accept incoming connections
     int index;
     int fd;
     while (1) {
-        if ((index = nextindex()) == -1) {
-            // No open slots
-            continue;
-        }
-
-        printf("Slot %d available\n", index);
-
         // Accept connection
         if ((fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
             perror("accept");
             exit(EXIT_FAILURE);
+        }
+
+        // If no slots, send denial header
+        if ((index = nextindex()) == -1) {
+            p_header h;
+            h.size = 0;
+            h.status = STATUS_CONNECT_DENIED;
+            
+            net::send_header(fd, h);
+
+            printf("Connection denied\n");
+            close(fd);
+            continue;
         }
 
         // Set fd safely

@@ -77,6 +77,13 @@ void Client::init() {
     // Recieve user id
     p_header header;
     net::read_header(client_fd, header);
+
+    // Check for denial
+    if (header.status == STATUS_CONNECT_DENIED) {
+        // Not sure what to do here, for now we exit
+        exit(1);
+    }
+
     user.uid = header.uid;
 }
 

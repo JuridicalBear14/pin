@@ -48,6 +48,11 @@ std::string Interface::get_name() {
 
 /* Write all data to screen */
 void MessageWindow::write_to_screen() {
+    // Check if we are ready to write
+    if (!active) {
+        return;
+    }
+
     mutex.lock();
     int line = MESSAGE_BOX_HEIGHT - 1;   // Line to add to, starts at bottom
 
@@ -170,6 +175,9 @@ int MessageWindow::create_screen() {
 
     // Refresh everything
     wrefresh(typebox);
+
+    // Now we're ready to go
+    active = true;
 
     // Fetch messages from server
     std::vector<std::string> s;

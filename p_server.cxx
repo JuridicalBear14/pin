@@ -35,6 +35,8 @@ int read_settings(struct server_settings& s) {
             continue;
         }
 
+        std::transform(buf.begin(), buf.end(), buf.begin(), ::tolower);
+
         // Otherwise switch case
         set = buf.substr(0, buf.find(' '));   // Grab first word, aka which setting
         val = buf.substr(buf.find(' ') + 1);
@@ -44,10 +46,15 @@ int read_settings(struct server_settings& s) {
             continue;
         }
 
-        if (set == "db") {
-            s.db = std::stoi(buf.substr(buf.find(" ") + 1));
-        } else if (set == "port") {
-            s.port = std::stoi(buf.substr(buf.find(" ") + 1));
+        // Try catch for stoi
+        try {
+            if (set == "db") {
+                s.db = std::stoi(buf.substr(buf.find(" ") + 1));
+            } else if (set == "port") {
+                s.port = std::stoi(buf.substr(buf.find(" ") + 1));
+            }
+        } catch (...) {
+            std::cout << "Error parsing settings file on line (will use default instead):\n" << buf << "\n";
         }
     }
 

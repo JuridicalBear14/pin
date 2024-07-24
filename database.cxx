@@ -239,13 +239,27 @@ int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
     return 0;
 }
 
+/* Fetch up to [count] messages from the given convo (most-recent back) and return them */
+int DB_FS::get_messages(int cid, std::vector<std::string>& messages, int count) {
+    // NOT IMPLEMENTED
+    return -1;
+}
+
 /* Fetch entries for convo index */
 int DB_FS::get_convo_index(std::vector<Convo>& items) {
+    mut.lock();
+
     if (db_id == DB_NONE) {
+        // If none, create an ephemeral convo
+        Convo c;
+        c.cid = -1;
+        strncpy(c.name, "Phantom", 8);
+        c.global = true;
+
+        items.push_back(c);
+
         return DB_NONE;
     }
-
-    mut.lock();
 
     // Open index
     std::fstream f(db_path + "convo_index", std::ios::in | std::ios::out | std::ios::binary);

@@ -23,7 +23,7 @@
 #define PIN_VERSION 1
 
 #define DEFAULT_PORT 5555
-#define MAXUSR 10
+#define MAXUSR 10    // Max number of users on the network
 #define NAMELEN 15     // Max name length
 #define MAXMSG 1024    // Max message length
 #define MAX_CONVO_USERS 10  // Max number of users for one convo (other than all)
@@ -41,6 +41,7 @@
 #define STATUS_DB_FETCH 5   // Client requesting data from db (convo id)
 #define STATUS_DB_SYNC 6   // Sync db contents with client
 #define STATUS_CONVO_CREATE 7   // Create a new convo with name following
+#define STATUS_CONNECT_DENIED 8   // Denial of connection
 
 // File type constants
 #define FILE_TYPE_NULL 0

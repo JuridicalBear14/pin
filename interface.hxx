@@ -67,6 +67,7 @@ class MessageWindow: public Interface {
         std::vector<std::string> messages;
         int display_offset = 0;   // Offset for which messages are displayed
         // (ex: 1 -> display all messages except most recent)
+        bool active = false;
 };
 
 class ScrollableList: Interface {
