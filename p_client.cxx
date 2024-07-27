@@ -60,7 +60,10 @@ int main(int argc, char** argv) {
     }
     
     Client c(name, client_fd);
-    c.init();
+    if (c.init() != E_NONE) {
+        close(client_fd);
+        return -1;
+    }
 
     std::thread listener_t(start_listener, &c);
     std::thread interface_t(start_interface, &c);

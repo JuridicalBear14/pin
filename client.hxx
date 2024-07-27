@@ -7,18 +7,18 @@ class Client {
     public:
         Client(std::string name, int fd);
         void interface_handler();
-        void send_message(int status, std::string buf);
+        int send_message(int status, std::string buf);
         void recieve();
         void set_client_fd(int fd);
-        void init();
-        void request_convo(std::vector<std::string>& str);
+        int init();
+        int request_convo(std::vector<std::string>& str);
         int fetch_convo_options(std::vector<Convo>& v);
         std::string getname();
 
     private:
         int request_new_convo(Convo c);
         int build_new_convo(Convo& c);
-        void send_and_wait(p_header header, void* buf, std::condition_variable* waiter);
+        int send_and_wait(p_header header, void* buf, std::condition_variable* waiter);
 
         Interface* interface;
         int client_fd;

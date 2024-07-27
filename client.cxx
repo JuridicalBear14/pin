@@ -50,12 +50,18 @@ void Client::interface_handler() {
             int ret = build_new_convo(c);
 
             // Check for quit
-            if (ret == -1) {
+            if (ret != E_NONE) {
                 break;
             }
             
             // Now request a new convo with this struct
             user.cid = request_new_convo(c);
+
+            if (user.cid == -1) {
+                std::cout << "Failed to create new convo\n";
+                continue;
+            }
+
         } else {   // Normal
             user.cid = options[choice - 1].cid;   // Remember to get cid from array since numbers are just for selection
         }
@@ -91,25 +97,32 @@ int Client::build_new_convo(Convo& c) {
     strncpy(c.name, buf.c_str(), NAMELEN);
     c.name[NAMELEN] = 0;   // Make sure null at the end
 
-    return 0;
+    return E_NONE;
 }
 
 /* Initialize connection to server */
-void Client::init() {
+int Client::init() {
+    int ret;
+
     // Send name over
-    send_message(STATUS_CONNECT, user.name);
+    if (ret = send_message(STATUS_CONNECT, user.name) != E_NONE) {
+        return ret;
+    }
 
     // Recieve user id
     p_header header;
-    net::read_header(client_fd, header);
+    if (ret = net::read_header(client_fd, header) != E_NONE) {
+        return ret;
+    }
 
     // Check for denial
-    if (header.status == STATUS_CONNECT_DENIED) {
+    if (header.status == STATUS_CONNECT_DENIED || header.status == STATUS_ERROR) {
         // Not sure what to do here, for now we exit
-        exit(1);
+        return E_CONNECTION_CLOSED;
     }
 
     user.uid = header.uid;
+    return E_NONE;
 }
 
 /* Fetch all convo options from server and return the count */
@@ -120,11 +133,12 @@ int Client::fetch_convo_options(std::vector<Convo>& v) {
     header.size = 0;
     header.status = STATUS_DB_SYNC; 
 
-    std::unique_lock<std::mutex> lock(mut);
+    int ret = send_and_wait(header, NULL, &convo_waiter);
 
-    net::send_header(client_fd, header);
-    // Then wait for the socket to recieve every packet
-    convo_waiter.wait(lock);
+    if (ret != E_NONE) {
+        std::cout << "err" << ret << "\n";
+        return 0;
+    }
 
     // Now transfer to arg vector and clear convo_transfer
     v = convo_vector;
@@ -135,7 +149,7 @@ int Client::fetch_convo_options(std::vector<Convo>& v) {
 }
 
 /* Request a convo's data from server */
-void Client::request_convo(std::vector<std::string>& str) {
+int Client::request_convo(std::vector<std::string>& str) {
     // Send request to server
     p_header req;
     req.cid = user.cid;
@@ -143,7 +157,7 @@ void Client::request_convo(std::vector<std::string>& str) {
     req.status = STATUS_DB_FETCH;
     req.uid = -1;
 
-    net::send_header(client_fd, req);
+    return net::send_header(client_fd, req);
 }
 
 /* Request the server to make a new convo and return its cid */
@@ -154,7 +168,11 @@ int Client::request_new_convo(Convo c) {
     header.size = sizeof(c);
     header.status = STATUS_CONVO_CREATE; 
 
-    send_and_wait(header, &c, &convo_waiter);
+    int ret = send_and_wait(header, &c, &convo_waiter);
+
+    if (ret != E_NONE) {
+        return -1;
+    }
 
     mut.lock();
 
@@ -167,7 +185,7 @@ int Client::request_new_convo(Convo c) {
     return c.cid;
 }
 
-void Client::send_message(int status, std::string buf) {
+int Client::send_message(int status, std::string buf) {
     // Construct header
     p_header header;
     header.uid = user.uid;
@@ -176,18 +194,29 @@ void Client::send_message(int status, std::string buf) {
     header.size = buf.length();
 
     // Now call net
-    int ret = net::send_msg(client_fd, header, buf);
+    return net::send_msg(client_fd, header, buf);
 }
 
 /* Send a message and then wait for reply */
-void Client::send_and_wait(p_header header, void* buf, std::condition_variable* waiter) {
+int Client::send_and_wait(p_header header, void* buf, std::condition_variable* waiter) {
     std::unique_lock<std::mutex> lock(mut);
+    int ret;
 
-    net::send_msg(client_fd, header, buf);
+    if (buf == NULL) {
+        ret = net::send_header(client_fd, header);
+    } else {
+        ret = net::send_msg(client_fd, header, buf);
+    }
+
+    if (ret != E_NONE) {
+        mut.unlock();
+        return ret;
+    }
 
     // Then wait for the socket to recieve every packet
     convo_waiter.wait(lock);
     mut.unlock();
+    return E_NONE;
 }
 
 void Client::set_client_fd(int fd) {
@@ -203,12 +232,12 @@ void Client::recieve() {
     Convo c;
 
     // Read headers until socket close
-    while (net::read_header(client_fd, header) > 0) {
+    while (net::read_header(client_fd, header) == E_NONE) {
         // Figure out msg type
         switch (header.status) {
             case STATUS_MSG:
             case STATUS_MSG_OLD:
-                if (net::read_data(client_fd, header.size, str) > 0) {
+                if (net::read_data(client_fd, header.size, str) == E_NONE) {
                     interface->update_data(str, header.status);
                     interface->write_to_screen();
                 }
@@ -221,7 +250,7 @@ void Client::recieve() {
                 }
 
                 // Read into vector
-                if (net::read_data(client_fd, header.size, &c) > 0) {
+                if (net::read_data(client_fd, header.size, &c) == E_NONE) {
                     mut.lock();
                     convo_vector.push_back(c);
                     mut.unlock();
@@ -235,7 +264,7 @@ void Client::recieve() {
 
             case STATUS_CONVO_CREATE:
                 // Read into vector
-                if (net::read_data(client_fd, header.size, &c) > 0) {
+                if (net::read_data(client_fd, header.size, &c) == E_NONE) {
                     mut.lock();
                     convo_vector.push_back(c);
                     mut.unlock();

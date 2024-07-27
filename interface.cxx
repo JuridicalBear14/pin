@@ -264,10 +264,12 @@ int MessageWindow::event_loop(WINDOW* typebox) {
                 case '\n':   // Enter
                     // If not empty, add
                     if (buffer.length() > 0) {
+                        if (parent->send_message(STATUS_MSG, buffer) != E_NONE) {
+                            break;
+                        }
+
                         update_data(buffer, STATUS_NULL);
                         write_to_screen();
-
-                        parent->send_message(STATUS_MSG, buffer);
 
                         mutex.lock();
                         clear_window(typebox, TYPEBOX_HEIGHT);

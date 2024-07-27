@@ -3,15 +3,18 @@ SERVER=p_server.cxx server.cxx server.hxx
 INTERFACE=interface.cxx interface.hxx
 DATABASE=database.cxx database.hxx
 NET=net.cxx net.hxx
+UTIL=util.cxx util.hxx
+
+SHARED=$(NET) $(UTIL)# Files shared between both
 GCC=g++
 
 both: client server
 
-client: $(CLIENT) $(INTERFACE) $(NET) defn.hxx
-	$(GCC) -o client $(CLIENT) $(INTERFACE) $(NET) -lpthread -lncurses -g
+client: $(CLIENT) $(INTERFACE) $(SHARED) defn.hxx
+	$(GCC) -o client $(CLIENT) $(INTERFACE) $(SHARED) -lpthread -lncurses -g
 
-server: $(SERVER) $(DATABASE) $(NET) defn.hxx
-	$(GCC) -o server $(SERVER) $(DATABASE) $(NET) -lpthread -g
+server: $(SERVER) $(DATABASE) $(SHARED) defn.hxx
+	$(GCC) -o server $(SERVER) $(DATABASE) $(SHARED) -lpthread -g
 
 # interface: $(INTERFACE) defn.hxx
 # 	$(GCC) -o interface $(INTERFACE) -lncurses -g

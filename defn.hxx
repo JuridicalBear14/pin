@@ -32,16 +32,32 @@
 #define EXIT_NONE 0   // Exit program fully
 #define EXIT_BG 1   // Put this interface in the background on exit
 
-// Header constants
-#define STATUS_NULL 0
-#define STATUS_CONNECT 1
-#define STATUS_MSG 2
-#define STATUS_MSG_OLD 3   // Message being sent to catch up to db
-#define STATUS_ITEM_COUNT 4   // Message that defines a count of following messages, rather than a number of bytes
-#define STATUS_DB_FETCH 5   // Client requesting data from db (convo id)
-#define STATUS_DB_SYNC 6   // Sync db contents with client
-#define STATUS_CONVO_CREATE 7   // Create a new convo with name following
-#define STATUS_CONNECT_DENIED 8   // Denial of connection
+// Header status codes
+enum header_status {
+    STATUS_NULL,
+    STATUS_CONNECT,
+    STATUS_MSG,
+    STATUS_MSG_OLD,   // Message being sent to catch up to db
+    STATUS_ITEM_COUNT,   // Message that defines a count of following messages, rather than a number of bytes
+    STATUS_DB_FETCH,   // Client requesting data from db (convo id)
+    STATUS_DB_SYNC,    // Sync db contents with client
+    STATUS_CONVO_CREATE,    // Create a new convo with name following
+    STATUS_CONNECT_DENIED,   // Denial of connection
+    STATUS_ERROR   // Something on sender's end failed
+};
+
+// Error codes
+enum error_code {
+    E_NO_SPACE = -1,   // -1 to not conflict with other id systems
+    E_NONE,
+    E_CONNECTION_CLOSED,
+    E_BAD_ADDRESS,
+    E_BAD_VALUE,
+    E_FAILED_READ,
+    E_FAILED_WRITE,
+    E_TOO_BIG,
+    E_GENERIC
+};
 
 // File type constants
 #define FILE_TYPE_NULL 0

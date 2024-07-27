@@ -39,8 +39,8 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
             exit(EXIT_FAILURE);
         }
 
-        // If no slots, send denial header
-        if ((index = nextindex()) == -1) {
+        // If no slots or bad init, send denial header
+        if (((index = nextindex()) == E_NO_SPACE) || (init_connection(fd, index) != E_NONE)) {
             p_header h;
             h.size = 0;
             h.status = STATUS_CONNECT_DENIED;
@@ -57,7 +57,6 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
         pollfds[index].fd = fd;
         mut.unlock();
 
-        init_connection(index);
         printf("Connection accepted in slot %d, fd: %d\n", index, pollfds[index].fd);
     }
 }
@@ -68,21 +67,31 @@ std::string Server::get_username(int ix) {
 }
 
 /* Initial connection to client, read their name and then transfer convo history */
-void Server::init_connection(int ix) {
+int Server::init_connection(int fd, int ix) {
     // Read name
     std::string str;
     p_header header;
+    int ret;
 
-    net::read_msg(pollfds[ix].fd, header, str);
+    if ((ret = net::read_msg(fd, header, str)) != E_NONE) {
+        return ret;
+    }
 
     // Lookup user in db (and create if not found)
     int uid = database->get_user_id(str, true);
 
-    if (uid == -1) {
-        // I have no idea what to do here
+    if (uid == E_NO_SPACE) {
+        return E_GENERIC;
+    }
+
+    // Now send back header with uid
+    header.uid = uid;
+    if ((ret = net::send_header(fd, header)) != E_NONE) {
+        return ret;
     }
 
     mut.lock();
+    
     // Set user data
     strncpy(users[ix].name, str.c_str(), NAMELEN + 1);   // +1 for null
     users[ix].uid = uid;
@@ -90,13 +99,7 @@ void Server::init_connection(int ix) {
     mut.unlock();
 
     std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
-
-    // Now send back header with uid
-    header.uid = uid;
-    net::send_header(pollfds[ix].fd, header);
-
-    // Dispatch thread to catch client up so we can get back to listening
-    //auto handle = std::async(std::launch::async, sync_client_db, database, pollfds[ix].fd, uid);
+    return E_NONE;
 }
 
 /* Catch the client up on the contents of the db */
@@ -116,12 +119,19 @@ void Server::sync_client_db(Database* database, int fd, int uid) {
     // If no convos, just send empty header
     if (header.data == 0) {
         header.size = 0;
-        net::send_header(fd, header);
+
+        if (net::send_header(fd, header) != E_NONE) {
+            std::cout << "Sync failed\n";
+            return;
+        }
     }
 
     // Send all convos
     for (Convo c : items) {
-        net::send_msg(fd, header, &c);
+        if (net::send_msg(fd, header, &c) != E_NONE) {
+            std::cout << "Sync failed\n";
+            return;
+        }
     }
 
     std::cout << "Sync complete\n";
@@ -140,15 +150,18 @@ void Server::sync_client_convo(Database* database, int fd, int cid, int uid) {
     header.status = STATUS_DB_FETCH;
     header.data = messages.size();
 
-    //net::send_header(fd, header);
-
     // Now build generic header to pack and send each one
     header.status = STATUS_MSG_OLD;
     int count = 0;
+
     // Loop and send messages
     for (std::string& s : messages) {
         header.size = s.size();
-        net::send_msg(fd, header, s);
+
+        if (net::send_msg(fd, header, s) != E_NONE) {
+            std::cout << "Sync failed\n";
+            return;
+        }
     }
 
     std::cout << "Sync complete\n";
@@ -166,7 +179,7 @@ int Server::nextindex() {
 
     // No open slots
     mut.unlock();
-    return -1;
+    return E_NO_SPACE;
 }
 
 /* Send message to all other users in the same convo */
@@ -180,13 +193,14 @@ void Server::sendall(int ix, std::string buf) {
     mut.lock();
 
     // Construct message
-    //std::string msg = "<" + get_username(ix) + "> " + buf;
     header.size = buf.length();
 
     for (int i = 0; i < MAXUSR; i++) {
         if (pollfds[i].fd != -1 && users[i].cid == header.cid && i != ix) {
             // Send to socket
-            net::send_msg(pollfds[i].fd, header, buf);
+            if (net::send_msg(pollfds[i].fd, header, buf) != E_NONE) {
+                std::cout << "Failed to send on slot: " << ix << "\n";
+            }
         }
     }
 
@@ -196,6 +210,7 @@ void Server::sendall(int ix, std::string buf) {
 /* Listen for incoming messages and relay them across the network */
 void Server::msg_relay() {
     int n;
+    int ret;
     std::string str;
     p_header header;
     Convo c;
@@ -208,7 +223,7 @@ void Server::msg_relay() {
             if (pollfds[i].revents & POLLIN) {
 
                 // Ready to read
-                if (!net::read_header(pollfds[i].fd, header)) {
+                if ((ret = net::read_header(pollfds[i].fd, header)) == E_CONNECTION_CLOSED) {
                     mut.lock();
 
                     // Closed
@@ -223,6 +238,10 @@ void Server::msg_relay() {
                     mut.unlock();
 
                     printf("Closed slot: %d\n", i);
+                    continue;
+                } else if (ret != E_NONE) {
+                    // Reset revents
+                    pollfds[i].revents = 0;
                     continue;
                 }
 
@@ -239,7 +258,10 @@ void Server::msg_relay() {
 
                     case STATUS_MSG: 
                         // Read rest of message
-                        net::read_data(pollfds[i].fd, header.size, str);
+                        if (net::read_data(pollfds[i].fd, header.size, str) != E_NONE) {
+                            // Read failed
+                            break;
+                        }
 
                         // Write to db
                         str = "<" + get_username(i) + "> " + str;
@@ -250,12 +272,18 @@ void Server::msg_relay() {
                         break;
                     
                     case STATUS_DB_SYNC:
+                        std::cout << "sync\n";
                         sync_client_db(database, pollfds[i].fd, header.uid);
                         break;
 
                     case STATUS_CONVO_CREATE:
                         // Read rest of message
-                        net::read_data(pollfds[i].fd, header.size, &c);
+                        if (net::read_data(pollfds[i].fd, header.size, &c) != E_NONE) {
+                            // Failed read
+                            net::send_header(pollfds[i].fd, {users[i].uid, -1, STATUS_ERROR, 0, 0});
+                            break;
+                        }
+
                         // Create the convo
                         database->create_convo(c);
 
