@@ -56,8 +56,8 @@ void Client::interface_handler() {
             
             // Now request a new convo with this struct
             user.cid = request_new_convo(c);
-
-            if (user.cid == -1) {
+            
+            if (user.cid == E_NO_SPACE) {
                 std::cout << "Failed to create new convo\n";
                 continue;
             }
@@ -171,10 +171,15 @@ int Client::request_new_convo(Convo c) {
     int ret = send_and_wait(header, &c, &convo_waiter);
 
     if (ret != E_NONE) {
-        return -1;
+        return E_NO_SPACE;
     }
 
     mut.lock();
+
+    // If vector empty then couldn't create
+    if (convo_vector.size() == 0) {
+        return E_NO_SPACE;
+    }
 
     // Now transfer to arg vector and clear convo_transfer
     c = convo_vector[0];   // Should only be 1 entry
@@ -263,15 +268,21 @@ void Client::recieve() {
                 break;
 
             case STATUS_CONVO_CREATE:
+                // Check for error
+                if (header.status == STATUS_ERROR) {
+                    convo_waiter.notify_all();
+                    break;
+                }
+
                 // Read into vector
                 if (net::read_data(client_fd, header.size, &c) == E_NONE) {
                     mut.lock();
                     convo_vector.push_back(c);
                     mut.unlock();
-
-                    // Notify interface to continue
-                    convo_waiter.notify_all();
                 }
+
+                // Notify interface to continue
+                convo_waiter.notify_all();
                 break;
         }
     }

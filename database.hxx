@@ -6,6 +6,7 @@
 #define DB_NONE -2
 #define DB_DEFAULT 0   // Default will use the newest db in index, or create new if none are found
 #define DB_NEW -1
+#define DB_ERR -3   // Some error in db space
 
 class Database {
     public:
@@ -35,7 +36,7 @@ class DB_FS: public Database {
         int create_convo(Convo& c);
 
     private:
-        void build_FS(std::vector<int>& entries);
+        int build_FS(std::vector<int>& entries);
         int build_db();
         int generate_id();
         int update_file_header(int count);

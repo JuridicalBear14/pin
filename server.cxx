@@ -80,7 +80,7 @@ int Server::init_connection(int fd, int ix) {
     // Lookup user in db (and create if not found)
     int uid = database->get_user_id(str, true);
 
-    if (uid == E_NO_SPACE) {
+    if (uid == DB_ERR) {
         return E_GENERIC;
     }
 
@@ -108,7 +108,10 @@ void Server::sync_client_db(Database* database, int fd, int uid) {
 
     // Get items
     std::vector<Convo> items;
-    database->get_convo_index(items);
+    if (database->get_convo_index(items) != E_NONE) {
+        // Error reading, so log and continue with empty list
+        std::cout << "Could not read convo index\n";
+    }
 
     p_header header;
     header.uid = uid;
@@ -265,7 +268,10 @@ void Server::msg_relay() {
 
                         // Write to db
                         str = "<" + get_username(i) + "> " + str;
-                        database->write_msg(header.cid, header, str);
+                        ret = database->write_msg(header.cid, header, str);
+                        if (ret != E_NONE && ret != DB_NONE) {
+                            std::cout << "Could not write message\n";
+                        }
 
                         // Send message to all others
                         sendall(i, str);
@@ -285,10 +291,18 @@ void Server::msg_relay() {
                         }
 
                         // Create the convo
-                        database->create_convo(c);
+                        ret = database->create_convo(c);
 
-                        // Now send back the convo with new cid
-                        net::send_msg(pollfds[i].fd, header, &c);
+                        // If couldn't write, send back error
+                        if (ret < 1) {
+                            header.status = STATUS_ERROR;
+                            header.size = 0;
+
+                            net::send_header(pollfds[i].fd, header);
+                        } else {
+                            // Now send back the convo with new cid
+                            net::send_msg(pollfds[i].fd, header, &c);
+                        }
                         break;
                 }
 

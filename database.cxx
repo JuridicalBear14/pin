@@ -16,7 +16,11 @@ DB_FS::DB_FS(int id) {
 
     // Build the database file system (or do nothing if it already exists), then return all indexed dbs
     std::vector<int> databases;
-    build_FS(databases);
+    if (build_FS(databases) != E_NONE) {
+        std::cout << "Error: failed to build file system, defaulting to none\n";
+        db_id = DB_NONE;
+        return;
+    }
     
     if ((id == DB_NEW) || (id == DB_DEFAULT && databases.size() < 1)) {  // Create new
         db_id = build_db();
@@ -54,13 +58,15 @@ DB_FS::DB_FS(int id) {
 }
 
 /* Build the pin file system structure and/or index all databases found in it */
-void DB_FS::build_FS(std::vector<int>& entries) {
+int DB_FS::build_FS(std::vector<int>& entries) {
     mut.lock();
 
     // First check for data dir
     struct stat sb;
     if (stat(DATA_DIR, &sb)) {
-        mkdir(DATA_DIR, 0777);
+        if (mkdir(DATA_DIR, 0777)) {
+            return E_FAILED_WRITE;
+        }
     }
 
     // Then open index file and read any contents
@@ -78,6 +84,8 @@ void DB_FS::build_FS(std::vector<int>& entries) {
 
     mut.unlock();
     f.close();
+
+    return E_NONE;
 }
 
 /* Build a new database and update index, return the id of the new db or DB_NONE for error */
@@ -151,6 +159,10 @@ int DB_FS::generate_id() {
 
 /* Create a new user for the db */
 int DB_FS::add_user(std::string name, int id) {
+    if (db_id == DB_NONE) {
+        return DB_NONE;
+    }
+
     mut.lock();
 
     // Open user file
@@ -166,6 +178,10 @@ int DB_FS::add_user(std::string name, int id) {
 
 /* Lookup user id by name, if not found and create is true: create new user and return the new id */
 int DB_FS::get_user_id(std::string name, bool create) {
+    if (db_id == DB_NONE) {
+        return DB_NONE;
+    }
+
     // Loop through all users in file, either find them or generate new id of max+1
     std::ifstream f(db_path + "/users");
     std::string buf;
@@ -196,7 +212,7 @@ int DB_FS::get_user_id(std::string name, bool create) {
     }
 
 
-    return -1;
+    return DB_ERR;
 }
 
 
@@ -216,7 +232,7 @@ int DB_FS::write_msg(int cid, p_header header, std::string str) {
     f.close();
 
     mut.unlock();
-    return str.size() + 1;  // +1 for newline
+    return E_NONE;  // +1 for newline
 }
 
 /* Fetch all messages from the given convo and write them into given vector */
@@ -236,7 +252,7 @@ int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
     }
 
     mut.unlock();
-    return 0;
+    return E_NONE;
 }
 
 /* Fetch up to [count] messages from the given convo (most-recent back) and return them */
@@ -266,6 +282,9 @@ int DB_FS::get_convo_index(std::vector<Convo>& items) {
 
     // Read header
     int count = read_file_header(FILE_TYPE_CONVO_INDEX, sizeof(Convo));
+    if (count == DB_ERR) {
+        return E_FAILED_READ;
+    }
 
     // Seek to first entry
     f.seekg(sizeof(pin_db_header), f.beg);
@@ -280,7 +299,7 @@ int DB_FS::get_convo_index(std::vector<Convo>& items) {
     f.close();
 
     mut.unlock();
-    return 0;
+    return E_NONE;
 }
 
 /* Create a new convo file (from a convo struct) and update the index and cid */
@@ -327,7 +346,7 @@ int DB_FS::update_file_header(int count) {
     h.itemno = count;
     f.write((char*) &h, sizeof(h));
 
-    return h.itemno;
+    return E_NONE;
 }
 
 /* Read the header of a given file and return errors for wrong data, otherwise return item count */
@@ -340,7 +359,7 @@ int DB_FS::read_file_header(int type, int size) {
 
     if (h.type != type || h.version != PIN_VERSION || h.itemsize != size) {
         std::cout << "err\n";
-        return -1;
+        return DB_ERR;
     }
 
     return h.itemno;
