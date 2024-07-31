@@ -4,8 +4,9 @@ INTERFACE=interface.cxx interface.hxx
 DATABASE=database.cxx database.hxx
 NET=net.cxx net.hxx
 UTIL=util.cxx util.hxx
+SECURE=secure.cxx secure.hxx
 
-SHARED=$(NET) $(UTIL)# Files shared between both
+SHARED=$(NET) $(UTIL) $(SECURE)# Files shared between both
 GCC=g++
 
 both: client server
@@ -24,8 +25,8 @@ server: $(SERVER) $(DATABASE) $(SHARED) defn.hxx
 
 run: both
 	gnome-terminal -- bash -c './server'
-	gnome-terminal -- bash -c './client client1'
-	gnome-terminal -- bash -c './client client2'
+	gnome-terminal -- bash -c './client local client1 key'
+	gnome-terminal -- bash -c './client local client2 key'
 
 clean:
 	rm server client

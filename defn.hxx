@@ -27,6 +27,7 @@
 #define NAMELEN 15     // Max name length
 #define MAXMSG 1024    // Max message length
 #define MAX_CONVO_USERS 10  // Max number of users for one convo (other than all)
+#define KEYLEN 6   // Length of a user authentication key
 
 // Exit code stuff for interface and client
 #define EXIT_NONE 0   // Exit program fully
@@ -43,7 +44,9 @@ enum header_status {
     STATUS_DB_SYNC,    // Sync db contents with client
     STATUS_CONVO_CREATE,    // Create a new convo with name following
     STATUS_CONNECT_DENIED,   // Denial of connection
-    STATUS_ERROR   // Something on sender's end failed
+    STATUS_ERROR,   // Something on sender's end failed
+    STATUS_USER_AUTH,   // Authenticating user
+    STATUS_USER_DENIED   // User auth denied
 };
 
 // Error codes
@@ -63,10 +66,17 @@ enum error_code {
 #define FILE_TYPE_NULL 0
 #define FILE_TYPE_CONVO_INDEX 1
 
+// Struct for user data
+typedef struct User {
+    int uid;   // User id
+    int cid;    // Current cid
+    char name[NAMELEN + 1];  // Name  (+1 for null-term)
+    char key[KEYLEN + 1];
+} User;
+
 // Struct for communication header
 struct p_header {
-    int uid;    // User id
-    int cid;    // Convo id
+    User user;
     int status;   // Message type
     int data;   // Small data field for various uses
     uint64_t size;   // Size of following data (bytes)
@@ -81,13 +91,6 @@ struct pin_db_header {
     int itemsize;
     int itemno;
 };
-
-// Struct for user data
-typedef struct User {
-    int uid;   // User id
-    int cid;    // Current cid
-    char name[NAMELEN + 1];  // Name  (+1 for null-term)
-} User;
 
 
 /* Struct for convo data */

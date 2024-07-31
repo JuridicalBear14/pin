@@ -5,12 +5,12 @@ class Interface;
 
 class Client {
     public:
-        Client(std::string name, int fd);
+        Client(int fd);
         void interface_handler();
         int send_message(int status, std::string buf);
         void recieve();
         void set_client_fd(int fd);
-        int init();
+        int init(std::string name, std::string key);
         int request_convo(std::vector<std::string>& str);
         int fetch_convo_options(std::vector<Convo>& v);
         std::string getname();

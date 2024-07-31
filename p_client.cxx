@@ -20,19 +20,25 @@ void* start_listener(void* args) {
 int main(int argc, char** argv) {
     int client_fd;
     std::string ip = "127.0.0.1";
-    std::string name = "NULL";
+    std::string name = "";
+    std::string key = "";
 
     // Name given
-    if (argc > 1) {
-        name = argv[1];
+    if (argc > 2) {
+        name = argv[2];
         if (name.length() > NAMELEN) {  // Clip off name
             name = name.substr(0, NAMELEN);
         }
     }
 
+    // Key given
+    if (argc > 3) {
+        key = argv[3];
+    }
+
     // ip given
-    if (argc > 2) {
-        ip = argv[2];
+    if (argc > 1 && (strcmp(argv[1], "local"))) {
+        ip = argv[1];
     }
 
     int status, valread;
@@ -59,8 +65,8 @@ int main(int argc, char** argv) {
         return -1;
     }
     
-    Client c(name, client_fd);
-    if (c.init() != E_NONE) {
+    Client c(client_fd);
+    if (c.init(name, key) != E_NONE) {
         close(client_fd);
         return -1;
     }

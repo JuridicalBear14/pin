@@ -1,13 +1,11 @@
 #include "local.hxx"
 
-Client::Client(std::string name, int fd) {
+Client::Client(int fd) {
     interface = new MessageWindow();
     interface->set_parent(this);
     client_fd = fd;
     user.cid = -1;
-
-    // Set name
-    strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
+    memset(user.key, 0, sizeof(user.key));
 }
 
 /* Get username as a std::string */
@@ -100,17 +98,29 @@ int Client::build_new_convo(Convo& c) {
     return E_NONE;
 }
 
-/* Initialize connection to server */
-int Client::init() {
+/* Initialize connection to server and authenticate user */
+int Client::init(std::string name, std::string key) {
+    // If name not provided, ask for it
+    if (name.size() == 0) {
+        std::cout << "Please input name: ";
+        std::cin >> name;
+    }
+
+    // Set name
+    strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
+
     int ret;
 
     // Send name over
-    if (ret = send_message(STATUS_CONNECT, user.name) != E_NONE) {
+    p_header header;
+    header.user = user;
+    header.size = 0;
+    header.status = STATUS_CONNECT;
+    if (ret = net::send_header(client_fd, header) != E_NONE) {
         return ret;
     }
 
     // Recieve user id
-    p_header header;
     if (ret = net::read_header(client_fd, header) != E_NONE) {
         return ret;
     }
@@ -121,7 +131,43 @@ int Client::init() {
         return E_CONNECTION_CLOSED;
     }
 
-    user.uid = header.uid;
+    /*
+    if (header.uid != -1) {
+        // If we got back an id, that means we are making a new account, so recieve key
+        if (ret = net::read_data(client_fd, (header.size % KEYLEN), &user.key) != E_NONE) {
+            return ret;
+        }
+
+        // Set name
+        strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
+
+        // Tell user key
+        std::cout << "New user created! Your key is: " << user.key << "\n";
+    } else {
+        // No id, but user found, so we need to authenticate
+        std::cout << "Please input user key:";
+        std::cin >> key;
+
+        // Should turn off terminal echo and encrypt key here  ////////////////////////////////////////////
+
+        // Send key over
+        if (ret = send_message(STATUS_USER_AUTH, key) != E_NONE) {
+            return ret;
+        }
+
+        // Now get reply
+        if (ret = net::read_header(client_fd, header) != E_NONE) {
+            return ret;
+        }
+        sizeof(User);
+        // Check for approval
+        if ()
+    }
+    */
+
+
+
+    user.uid = header.user.uid;
     return E_NONE;
 }
 
@@ -129,7 +175,7 @@ int Client::init() {
 int Client::fetch_convo_options(std::vector<Convo>& v) {
     // First we send the request
     p_header header;
-    header.uid = user.uid;
+    header.user = user;
     header.size = 0;
     header.status = STATUS_DB_SYNC; 
 
@@ -152,10 +198,9 @@ int Client::fetch_convo_options(std::vector<Convo>& v) {
 int Client::request_convo(std::vector<std::string>& str) {
     // Send request to server
     p_header req;
-    req.cid = user.cid;
+    req.user = user;
     req.size = 0;
     req.status = STATUS_DB_FETCH;
-    req.uid = -1;
 
     return net::send_header(client_fd, req);
 }
@@ -164,7 +209,7 @@ int Client::request_convo(std::vector<std::string>& str) {
 int Client::request_new_convo(Convo c) {
     // Then we send the request
     p_header header;
-    header.uid = user.uid;
+    header.user = user;
     header.size = sizeof(c);
     header.status = STATUS_CONVO_CREATE; 
 
@@ -193,8 +238,7 @@ int Client::request_new_convo(Convo c) {
 int Client::send_message(int status, std::string buf) {
     // Construct header
     p_header header;
-    header.uid = user.uid;
-    header.cid = user.cid;   // NOT IMPLEMENTED
+    header.user = user;
     header.status = status;
     header.size = buf.length();
 

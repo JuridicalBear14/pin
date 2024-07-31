@@ -85,7 +85,7 @@ int Server::init_connection(int fd, int ix) {
     }
 
     // Now send back header with uid
-    header.uid = uid;
+    header.user.uid = uid;
     if ((ret = net::send_header(fd, header)) != E_NONE) {
         return ret;
     }
@@ -93,9 +93,7 @@ int Server::init_connection(int fd, int ix) {
     mut.lock();
     
     // Set user data
-    strncpy(users[ix].name, str.c_str(), NAMELEN + 1);   // +1 for null
-    users[ix].uid = uid;
-    users[ix].cid = DB_NONE;
+    users[ix] = header.user;
     mut.unlock();
 
     std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
@@ -103,8 +101,8 @@ int Server::init_connection(int fd, int ix) {
 }
 
 /* Catch the client up on the contents of the db */
-void Server::sync_client_db(Database* database, int fd, int uid) {
-    std::cout << "Sync user " << uid << " with db\n";
+void Server::sync_client_db(Database* database, int fd, User user) {
+    std::cout << "Sync user " << user.uid << " with db\n";
 
     // Get items
     std::vector<Convo> items;
@@ -114,7 +112,7 @@ void Server::sync_client_db(Database* database, int fd, int uid) {
     }
 
     p_header header;
-    header.uid = uid;
+    header.user = user;
     header.status = STATUS_DB_SYNC;
     header.data = items.size();
     header.size = sizeof(Convo);
@@ -141,15 +139,14 @@ void Server::sync_client_db(Database* database, int fd, int uid) {
 }
 
 /* Sync client with contents of convo */
-void Server::sync_client_convo(Database* database, int fd, int cid, int uid) {
+void Server::sync_client_convo(Database* database, int fd, User user) {
     // Get message list
     std::vector<std::string> messages;
-    int ret = database->get_all_messages(cid, messages);
+    int ret = database->get_all_messages(user.cid, messages);
 
     // Send intitial header to tell client how many messages to expect
     p_header header;
-    header.uid = uid;
-    header.cid = cid;
+    header.user = user;
     header.status = STATUS_DB_FETCH;
     header.data = messages.size();
 
@@ -189,8 +186,7 @@ int Server::nextindex() {
 void Server::sendall(int ix, std::string buf) {
     // Construct header
     p_header header;
-    header.uid = users[ix].uid;
-    header.cid = users[ix].cid;
+    header.user = users[ix];
     header.status = STATUS_MSG;
 
     mut.lock();
@@ -199,7 +195,7 @@ void Server::sendall(int ix, std::string buf) {
     header.size = buf.length();
 
     for (int i = 0; i < MAXUSR; i++) {
-        if (pollfds[i].fd != -1 && users[i].cid == header.cid && i != ix) {
+        if (pollfds[i].fd != -1 && users[i].cid == header.user.cid && i != ix) {
             // Send to socket
             if (net::send_msg(pollfds[i].fd, header, buf) != E_NONE) {
                 std::cout << "Failed to send on slot: " << ix << "\n";
@@ -254,9 +250,9 @@ void Server::msg_relay() {
                 switch (header.status) {
                     case STATUS_DB_FETCH:
                         // Dispatch thread to catch client up so we can get back to listening
-                        std::cout << "Sync client " << get_username(i) << " with convo " << header.cid << "\n";
-                        users[i].cid = header.cid;
-                        sync_client_convo(database, pollfds[i].fd, header.cid, users[i].cid);
+                        std::cout << "Sync client " << get_username(i) << " with convo " << header.user.cid << "\n";
+                        users[i].cid = header.user.cid;
+                        sync_client_convo(database, pollfds[i].fd, header.user);
                         break;
 
                     case STATUS_MSG: 
@@ -268,7 +264,8 @@ void Server::msg_relay() {
 
                         // Write to db
                         str = "<" + get_username(i) + "> " + str;
-                        ret = database->write_msg(header.cid, header, str);
+                        std::cout << str << "\n";
+                        ret = database->write_msg(header.user.cid, header, str);
                         if (ret != E_NONE && ret != DB_NONE) {
                             std::cout << "Could not write message\n";
                         }
@@ -279,7 +276,7 @@ void Server::msg_relay() {
                     
                     case STATUS_DB_SYNC:
                         std::cout << "sync\n";
-                        sync_client_db(database, pollfds[i].fd, header.uid);
+                        sync_client_db(database, pollfds[i].fd, header.user);
                         break;
 
                     case STATUS_CONVO_CREATE:

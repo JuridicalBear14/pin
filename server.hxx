@@ -25,8 +25,8 @@ class Server {
         void sendall(int ix, std::string);
         int init_connection(int fd, int ix);
         void msg_relay();
-        static void sync_client_db(Database* database, int fd, int uid);
-        static void sync_client_convo(Database* database, int fd, int cid, int uid);
+        static void sync_client_db(Database* database, int fd, User user);
+        static void sync_client_convo(Database* database, int fd, User user);
         std::string get_username(int ix);
 
         std::mutex mut;
