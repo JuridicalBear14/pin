@@ -59,14 +59,18 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    // Before connecting, get client login info
+    Client c;
+    c.user_login(name, key);
+
     // Connect to server
     if ((status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
         std::cerr << "\nConnection Failed \n";
         return -1;
     }
     
-    Client c(client_fd);
-    if (c.init(name, key) != E_NONE) {
+    // Now initialize connection
+    if (c.init(client_fd) != E_NONE) {
         close(client_fd);
         return -1;
     }

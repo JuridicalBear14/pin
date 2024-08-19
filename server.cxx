@@ -73,9 +73,11 @@ int Server::init_connection(int fd, int ix) {
     p_header header;
     int ret;
 
-    if ((ret = net::read_msg(fd, header, str)) != E_NONE) {
+    if ((ret = net::read_header(fd, header)) != E_NONE) {
         return ret;
     }
+
+    str = std::string(header.user.name);
 
     // Lookup user in db (and create if not found)
     int uid = database->get_user_id(str, true);
@@ -84,17 +86,26 @@ int Server::init_connection(int fd, int ix) {
         return E_GENERIC;
     }
 
-    // Now send back header with uid
-    header.user.uid = uid;
-    if ((ret = net::send_header(fd, header)) != E_NONE) {
-        return ret;
+    // Now verify user and set data
+    if (false) {   // FILL IN LATER WITH USER AUTHENTICATION
+        // DENY CONNECTION
     }
+
+    ////////////////////////// GENERATE SESSION KEY //////////////////////////////
+    // (or maybe new key, depending on security system)
 
     mut.lock();
     
-    // Set user data
+    header.user.uid = uid;
+    // SET USER KEY
     users[ix] = header.user;
+    
     mut.unlock();
+
+    // Now send back header with user info
+    if ((ret = net::send_header(fd, header)) != E_NONE) {
+        return ret;
+    }
 
     std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
     return E_NONE;

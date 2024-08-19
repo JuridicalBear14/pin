@@ -46,7 +46,8 @@ enum header_status {
     STATUS_CONNECT_DENIED,   // Denial of connection
     STATUS_ERROR,   // Something on sender's end failed
     STATUS_USER_AUTH,   // Authenticating user
-    STATUS_USER_DENIED   // User auth denied
+    STATUS_USER_DENIED,   // User auth denied
+    STATUS_NEW_USER     // New user request
 };
 
 // Error codes

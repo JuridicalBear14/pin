@@ -1,11 +1,56 @@
 #include "local.hxx"
 
-Client::Client(int fd) {
+Client::Client() {
     interface = new MessageWindow();
     interface->set_parent(this);
-    client_fd = fd;
     user.cid = -1;
     memset(user.key, 0, sizeof(user.key));
+}
+
+/* Get user login info from terminal before anything else */
+void Client::user_login(std::string name, std::string key) {
+    // First get name
+    if (name.size() == 0) {   // If already in, skip
+        std::string s;
+
+        // Loop until valid selection
+        while (s != "n" && s != "r") {
+            // Ask if new user
+            std::cout << "[N]ew user or [R]eturning user?\n";
+            
+            std::cin >> s;
+            s = std::tolower(s.c_str()[0]);   // Obnoxious process to lowercase a string
+        }
+
+        std::cout << "Please input name: ";
+        std::cin >> name;
+
+        // If a new user, skip asking for key
+        if (s == "n") {
+            // Set name
+            strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
+            return;
+        }
+    }
+
+    // Set name
+    strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
+
+    // Now get key (in a loop to make sure they put it in right)
+    while (key.size() != KEYLEN) {
+        std::cout << "Please input user key:";
+
+        ////////////////////////// TURN OFF TERMINAL ECHO HERE //////////////////////////////////
+
+        std::cin >> key;
+
+        /////////////////////////// TURN ON TERMINAL ECHO HERE /////////////////////////////////
+
+        /////////////////////////// ENCRYPT KEY HERE? //////////////////////////////////////
+
+        // Now set the key
+        strncpy(user.key, key.c_str(), NAMELEN + 1);   // +1 for null
+    }
 }
 
 /* Get username as a std::string */
@@ -99,19 +144,12 @@ int Client::build_new_convo(Convo& c) {
 }
 
 /* Initialize connection to server and authenticate user */
-int Client::init(std::string name, std::string key) {
-    // If name not provided, ask for it
-    if (name.size() == 0) {
-        std::cout << "Please input name: ";
-        std::cin >> name;
-    }
-
-    // Set name
-    strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
+int Client::init(int fd) {
+    client_fd = fd;
 
     int ret;
 
-    // Send name over
+    // Send user struct over
     p_header header;
     header.user = user;
     header.size = 0;
@@ -131,43 +169,8 @@ int Client::init(std::string name, std::string key) {
         return E_CONNECTION_CLOSED;
     }
 
-    /*
-    if (header.uid != -1) {
-        // If we got back an id, that means we are making a new account, so recieve key
-        if (ret = net::read_data(client_fd, (header.size % KEYLEN), &user.key) != E_NONE) {
-            return ret;
-        }
+    this->user = header.user;
 
-        // Set name
-        strncpy(user.name, name.c_str(), NAMELEN + 1);   // +1 for null
-
-        // Tell user key
-        std::cout << "New user created! Your key is: " << user.key << "\n";
-    } else {
-        // No id, but user found, so we need to authenticate
-        std::cout << "Please input user key:";
-        std::cin >> key;
-
-        // Should turn off terminal echo and encrypt key here  ////////////////////////////////////////////
-
-        // Send key over
-        if (ret = send_message(STATUS_USER_AUTH, key) != E_NONE) {
-            return ret;
-        }
-
-        // Now get reply
-        if (ret = net::read_header(client_fd, header) != E_NONE) {
-            return ret;
-        }
-        sizeof(User);
-        // Check for approval
-        if ()
-    }
-    */
-
-
-
-    user.uid = header.user.uid;
     return E_NONE;
 }
 

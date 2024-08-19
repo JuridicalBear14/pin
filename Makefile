@@ -25,8 +25,8 @@ server: $(SERVER) $(DATABASE) $(SHARED) defn.hxx
 
 run: both
 	gnome-terminal -- bash -c './server'
-	gnome-terminal -- bash -c './client local client1 key'
-	gnome-terminal -- bash -c './client local client2 key'
+	gnome-terminal -- bash -c './client local client1 key123'
+	gnome-terminal -- bash -c './client local client2 key123'
 
 clean:
 	rm server client
