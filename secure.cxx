@@ -20,7 +20,7 @@ int secure::generate_key(char* buf) {
     // Set up randomizer
     std::random_device rd;
     std::mt19937 mt(rd());
-    std::uniform_int_distribution<int> dist(33, 126);
+    std::uniform_int_distribution<int> dist(33, 126);   // Numbers are the ascii range for typable characters
 
     // Now loop and generate key
     int i = 0;
@@ -33,8 +33,21 @@ int secure::generate_key(char* buf) {
 }
 
 /* Validate key match for a perspective user and their record */
-bool secure::validate_user(User user, User field) {
-    return true;   // NOT IMPLEMENTED
+bool secure::validate_user(User user, User record) {
+    // First we should check the name and uid
+    if (strncmp(user.name, record.name, sizeof(user.name))) {
+        // If different name/uid, wrong person
+        return false;
+    }
+
+    // Now check the key(s) (only one has to match)
+    if (strncmp(user.dynamic_key, record.master_key, sizeof(user.dynamic_key)) && strncmp(user.dynamic_key, record.dynamic_key, sizeof(user.dynamic_key))) {
+        // Different key, meaning denied login
+        return false;
+    }
+
+    // If keys are good, return true
+    return true;
 }
 
 /* Functions to show and hide terminal keystrokes, credit to Nik Bougalis on Stack Overflow */

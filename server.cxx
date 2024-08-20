@@ -99,6 +99,11 @@ int Server::init_connection(int fd, int ix) {
         return ret;
     }
 
+    mut.lock();
+    // Remove master key field if used
+    memset(users[ix].master_key, 0, KEYLEN + 1);
+    mut.unlock();
+
     std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
     return E_NONE;
 }

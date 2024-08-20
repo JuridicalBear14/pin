@@ -200,7 +200,7 @@ int DB_FS::get_user_id(User& user, bool create) {
     }
 
     // Loop through all users in file, either find them or generate new id of max+1
-    std::ifstream f(db_path + "users", std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream f(db_path + "users", std::ios::in | std::ios::out | std::ios::binary);
     User buf;
     int max = 0;
 
@@ -219,11 +219,19 @@ int DB_FS::get_user_id(User& user, bool create) {
         // Check if this is the right user
         if (std::string(user.name) == std::string(buf.name)) {
             if (secure::validate_user(user, buf)) {
-                // We found them, so generate session key
+                // We found them, so generate dynamic key
                 user.uid = buf.uid;
-                /////////////// GENERATE SESSION KEY HERE ///////////////
-                /////////////// DELETE MASTER KEY FIELD IF USED HERE  /////////
-                ////////////// WRITE NEW SESSION KEY TO DB //////////////
+                if (secure::generate_key(user.dynamic_key) != E_NONE) {
+                    return E_GENERIC;
+                }
+
+                // Write new dynamic key to db by seeking back and writing new struct
+                memcpy(&user.master_key, &buf.master_key, sizeof(user.master_key));   // Copy the master key
+                f.seekg(-(sizeof(user)), std::ios::cur);   // Seek negative [user] bytes from current position
+                f.write((char*) &user, sizeof(user));
+
+                // Remove master key field if used
+                memset(user.master_key, 0, sizeof(user.master_key));
                 
                 return E_NONE;
             } else {
@@ -240,8 +248,11 @@ int DB_FS::get_user_id(User& user, bool create) {
     if (create) {
         user.uid = max + 1;
 
-        ///////////// GENERATE KEYS HERE /////////////
+        // Generate keys
+        secure::generate_key(user.master_key);
+        secure::generate_key(user.dynamic_key);
 
+        // Save to db
         if (add_user(user) != E_NONE) {
             return E_FAILED_WRITE;
         }

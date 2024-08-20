@@ -166,13 +166,24 @@ int Client::init(int fd) {
 
     // Check for denial
     if (header.status == STATUS_CONNECT_DENIED || header.status == STATUS_ERROR) {
+        // If denied for bad key, tell the user
+        if (header.data == E_DENIED) {
+            std::cout << "Access denied: key not accepted\n";
+        }
+
         // Not sure what to do here, for now we exit
         return E_CONNECTION_CLOSED;
     }
 
     this->user = header.user;
 
-    ///////////// TELL USER THEIR SESSION KEY AND MASTER KEY /////////////
+    // Tell the user their session key (and master key if new)
+    if (user.master_key[0] != NULL) {   // New user
+        std::cout << "As a new user you recieve two keys: a master key and a dynamic key. The dynamic key changes every time you log in, and as such you must have the previous login's dynamic key to log in. Your master key will always work, but should only be used as a backup and in trusted environments.\n";
+        std::cout << "Your master key is: " << user.master_key << "\n";
+    }
+
+    std::cout << "Your dynamic key is now: " << user.dynamic_key << "\n";
 
     return E_NONE;
 }

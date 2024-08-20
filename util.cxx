@@ -14,3 +14,8 @@ std::string util::status2str(int status) {
 void util::log(std::streambuf stream, std::string event) {
 
 }
+
+/* Prompt user input and retrieve the result */
+void util::prompt(std::string message, std::string& buffer) {
+
+}
