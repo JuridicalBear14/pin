@@ -1,4 +1,5 @@
 #include "defn.hxx"
+#include "secure.hxx"
 
 #define DATA_DIR "data"
 
@@ -10,13 +11,13 @@
 
 class Database {
     public:
-        virtual int add_user(std::string name, int id) {return -1;};
+        virtual int add_user(User user) {return -1;};
         virtual int add_convo() {return -1;};
         virtual int write_msg(int cid, p_header header, std::string str) {return -1;};
         virtual int get_all_messages(int cid, std::vector<std::string>& messages) {return -1;};
         virtual int get_messages(int cid, std::vector<std::string>& messages, int count) {return -1;};
         virtual int get_convo_index(std::vector<Convo>& items) {return -1;};
-        virtual int get_user_id(std::string name, bool create) {return -1;};
+        virtual int get_user_id(User& user, bool create) {return -1;};
         virtual int create_convo(Convo& c) {return -1;};
 
     protected:
@@ -28,19 +29,19 @@ class DB_FS: public Database {
     public:
         DB_FS(int id);
         int write_msg(int cid, p_header header, std::string str);
-        int add_user(std::string name, int id);
+        int add_user(User user);
         int get_all_messages(int cid, std::vector<std::string>& messages);
         int get_messages(int cid, std::vector<std::string>& messages, int count);
         int get_convo_index(std::vector<Convo>& items);
-        int get_user_id(std::string name, bool create);
+        int get_user_id(User& user, bool create);
         int create_convo(Convo& c);
 
     private:
         int build_FS(std::vector<int>& entries);
         int build_db();
         int generate_id();
-        int update_file_header(int count);
-        int read_file_header(int type, int size);
+        int update_file_header(std::string file, int count);
+        int read_file_header(std::string file, int type, int size);
 
         int db_id;
         std::string db_path;

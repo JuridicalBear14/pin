@@ -32,6 +32,11 @@ int secure::generate_key(char* buf) {
     return E_NONE;
 }
 
+/* Validate key match for a perspective user and their record */
+bool secure::validate_user(User user, User field) {
+    return true;   // NOT IMPLEMENTED
+}
+
 /* Functions to show and hide terminal keystrokes, credit to Nik Bougalis on Stack Overflow */
 void secure::hide_keystrokes() {
     termios tty;

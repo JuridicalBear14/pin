@@ -4,7 +4,8 @@ Client::Client() {
     interface = new MessageWindow();
     interface->set_parent(this);
     user.cid = -1;
-    memset(user.key, 0, sizeof(user.key));
+    memset(user.master_key, 0, sizeof(user.master_key));
+    memset(user.dynamic_key, 0, sizeof(user.dynamic_key));
 }
 
 /* Get user login info from terminal before anything else */
@@ -49,7 +50,7 @@ void Client::user_login(std::string name, std::string key) {
         /////////////////////////// ENCRYPT KEY HERE? //////////////////////////////////////
 
         // Now set the key
-        strncpy(user.key, key.c_str(), NAMELEN + 1);   // +1 for null
+        strncpy(user.dynamic_key, key.c_str(), NAMELEN + 1);   // +1 for null
     }
 }
 
@@ -170,6 +171,8 @@ int Client::init(int fd) {
     }
 
     this->user = header.user;
+
+    ///////////// TELL USER THEIR SESSION KEY AND MASTER KEY /////////////
 
     return E_NONE;
 }

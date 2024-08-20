@@ -32,6 +32,7 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
     // Wait and accept incoming connections
     int index;
     int fd;
+    int ret;
     while (1) {
         // Accept connection
         if ((fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
@@ -40,10 +41,11 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
         }
 
         // If no slots or bad init, send denial header
-        if (((index = nextindex()) == E_NO_SPACE) || (init_connection(fd, index) != E_NONE)) {
+        if (((index = nextindex()) == E_NO_SPACE) || ((ret = init_connection(fd, index)) != E_NONE)) {
             p_header h;
             h.size = 0;
             h.status = STATUS_CONNECT_DENIED;
+            h.data = ret;   // Send error message to client
             
             net::send_header(fd, h);
 
@@ -80,24 +82,14 @@ int Server::init_connection(int fd, int ix) {
     str = std::string(header.user.name);
 
     // Lookup user in db (and create if not found)
-    int uid = database->get_user_id(str, true);
+    ret = database->get_user_id(header.user, true);
 
-    if (uid == DB_ERR) {
-        return E_GENERIC;
+    if (ret != E_NONE) {   // Validation denied, so deny client
+        return ret;
     }
-
-    // Now verify user and set data
-    if (false) {   // FILL IN LATER WITH USER AUTHENTICATION
-        // DENY CONNECTION
-    }
-
-    ////////////////////////// GENERATE SESSION KEY //////////////////////////////
-    // (or maybe new key, depending on security system)
 
     mut.lock();
-    
-    header.user.uid = uid;
-    // SET USER KEY
+
     users[ix] = header.user;
     
     mut.unlock();

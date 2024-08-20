@@ -116,7 +116,7 @@ int DB_FS::build_db() {
     index.close();
 
     // Create the convo file index to hold conversation data and write header
-    std::ofstream create_index(path + "/convo_index", std::ios::binary);
+    std::ofstream create_index(path + "convo_index", std::ios::binary);
     struct pin_db_header h;
     h.itemsize = sizeof(Convo);
     h.itemno = 0;   // Nothing for now
@@ -125,7 +125,10 @@ int DB_FS::build_db() {
     create_index.close();
 
     // Create user data file
-    std::ofstream create_users(path + "/users", std::ios::app);
+    std::ofstream create_users(path + "users", std::ios::binary);
+    h.itemsize = sizeof(User);
+    h.type = FILE_TYPE_USER_INDEX;
+    create_users.write((char*) &h, sizeof(h));
     create_users.close();
 
     // Remember to set path for class!
@@ -157,8 +160,8 @@ int DB_FS::generate_id() {
     return max + 1;
 }
 
-/* Create a new user for the db */
-int DB_FS::add_user(std::string name, int id) {
+/* Write a new user to the db */
+int DB_FS::add_user(User user) {
     if (db_id == DB_NONE) {
         return DB_NONE;
     }
@@ -166,53 +169,87 @@ int DB_FS::add_user(std::string name, int id) {
     mut.lock();
 
     // Open user file
-    std::fstream f(db_path + "/users", std::ios::app);
+    std::fstream f(db_path + "users", std::ios::in | std::ios::out | std::ios::binary);
+    int count = read_file_header(db_path + "users", FILE_TYPE_USER_INDEX, sizeof(User));
 
-    std::string buf = std::to_string(id) + ' ' + name;
-    f << buf << std::endl;
+    // Check for error
+    if (count == DB_ERR) {
+        f.close();
+        return DB_ERR;
+    }
+
+    // Seek to the end of the file and write the user
+    f.seekg(0, f.end);
+    f.write((char*) &user, sizeof(user));
+
+    int ret = update_file_header(db_path + "users", count + 1);
+
+    if (ret == DB_ERR) {
+        return DB_ERR;
+    }
     
     f.close();
     mut.unlock();
-    return id;
+    return E_NONE;
 }
 
-/* Lookup user id by name, if not found and create is true: create new user and return the new id */
-int DB_FS::get_user_id(std::string name, bool create) {
+/* Lookup user id by name, if not found and create is true: create new user */
+int DB_FS::get_user_id(User& user, bool create) {
     if (db_id == DB_NONE) {
         return DB_NONE;
     }
 
     // Loop through all users in file, either find them or generate new id of max+1
-    std::ifstream f(db_path + "/users");
-    std::string buf;
+    std::ifstream f(db_path + "users", std::ios::in | std::ios::out | std::ios::binary);
+    User buf;
     int max = 0;
 
-    int id;
-    std::string u_name;
-    while (std::getline(f, buf)) {
-        // Split into name and id
-        id = std::atoi(buf.substr(0, buf.find(' ')).c_str());
-        u_name = buf.substr(buf.find(' ') + 1, buf.length());
+    int count = read_file_header(db_path + "users", FILE_TYPE_USER_INDEX, sizeof(User));
 
-        // Check if we found the user
-        if (name == u_name) {
-            return id;
+    if (count == DB_ERR) {
+        return E_FAILED_READ;
+    }
+
+    // Seek to first entry, then read each one
+    f.seekg(sizeof(pin_db_header), f.beg);
+
+    for (int i = 0; i < count; i++) {
+        f.read((char*) &buf, sizeof(buf));
+
+        // Check if this is the right user
+        if (std::string(user.name) == std::string(buf.name)) {
+            if (secure::validate_user(user, buf)) {
+                // We found them, so generate session key
+                user.uid = buf.uid;
+                /////////////// GENERATE SESSION KEY HERE ///////////////
+                /////////////// DELETE MASTER KEY FIELD IF USED HERE  /////////
+                ////////////// WRITE NEW SESSION KEY TO DB //////////////
+                
+                return E_NONE;
+            } else {
+                // Right user, bad password
+                return E_DENIED;
+            }
         }
 
-        // Otherwise update max
-        max = id > max ? id : max;
+        // Otherwise increment max
+        max = buf.uid > max ? buf.uid : max;
     }
 
-    f.close();
-
-    // No user found, either create new or return err
+    // Not found, so create or return err
     if (create) {
-        id = max + 1;
-        return add_user(name, id);
+        user.uid = max + 1;
+
+        ///////////// GENERATE KEYS HERE /////////////
+
+        if (add_user(user) != E_NONE) {
+            return E_FAILED_WRITE;
+        }
+
+        return E_NONE;
     }
 
-
-    return DB_ERR;
+    return E_GENERIC;
 }
 
 
@@ -281,7 +318,7 @@ int DB_FS::get_convo_index(std::vector<Convo>& items) {
     std::fstream f(db_path + "convo_index", std::ios::in | std::ios::out | std::ios::binary);
 
     // Read header
-    int count = read_file_header(FILE_TYPE_CONVO_INDEX, sizeof(Convo));
+    int count = read_file_header(db_path + "convo_index", FILE_TYPE_CONVO_INDEX, sizeof(Convo));
     if (count == DB_ERR) {
         return E_FAILED_READ;
     }
@@ -313,7 +350,7 @@ int DB_FS::create_convo(Convo& c) {
     std::fstream f(db_path + "convo_index", std::ios::app | std::ios::out | std::ios::binary);
 
     // Read header
-    int count = read_file_header(FILE_TYPE_CONVO_INDEX, sizeof(Convo));
+    int count = read_file_header(db_path + "convo_index", FILE_TYPE_CONVO_INDEX, sizeof(Convo));
 
     c.cid = count + 1;
 
@@ -324,7 +361,7 @@ int DB_FS::create_convo(Convo& c) {
     f.close();
 
     // Update the file header to reflect the new item
-    update_file_header(c.cid);
+    update_file_header(db_path + "convo_index", c.cid);
 
     // Finally, create the convo file
     std::ofstream create(db_path + "convo_" + std::to_string(c.cid));
@@ -335,9 +372,9 @@ int DB_FS::create_convo(Convo& c) {
 }
 
 /* Update the item count for a file header */
-int DB_FS::update_file_header(int count) {
+int DB_FS::update_file_header(std::string file, int count) {
     // Open file and read current header
-    std::fstream f(db_path + "convo_index", std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
     pin_db_header h;
     f.read((char*) &h, sizeof(h));
 
@@ -350,8 +387,8 @@ int DB_FS::update_file_header(int count) {
 }
 
 /* Read the header of a given file and return errors for wrong data, otherwise return item count */
-int DB_FS::read_file_header(int type, int size) {
-    std::fstream f(db_path + "convo_index", std::ios::in | std::ios::out | std::ios::binary);
+int DB_FS::read_file_header(std::string file, int type, int size) {
+    std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
 
     struct pin_db_header h;
     f.read((char*) &h, sizeof(h));

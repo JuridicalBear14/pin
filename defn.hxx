@@ -60,19 +60,22 @@ enum error_code {
     E_FAILED_READ,
     E_FAILED_WRITE,
     E_TOO_BIG,
-    E_GENERIC
+    E_GENERIC,
+    E_DENIED
 };
 
 // File type constants
 #define FILE_TYPE_NULL 0
 #define FILE_TYPE_CONVO_INDEX 1
+#define FILE_TYPE_USER_INDEX 2
 
 // Struct for user data
 typedef struct User {
     int uid;   // User id
     int cid;    // Current cid
     char name[NAMELEN + 1];  // Name  (+1 for null-term)
-    char key[KEYLEN + 1];
+    char master_key[KEYLEN + 1];   // Key to always unlock account, field should only be used on db end
+    char dynamic_key[KEYLEN + 1];   // Dynamic session keys, used by both sides and for future logins
 } User;
 
 // Struct for communication header
