@@ -6,7 +6,7 @@ int secure::call_net(User user, int (*func), int count, ...) {
 }
 
 /* Lexically encrypt a given string */
-int secure::encrypt(std::string input) {
+int secure::encrypt(std::string& input) {
     // NOT IMPLEMENTED
     return E_NONE;
 }
@@ -17,15 +17,25 @@ int secure::generate_key(char* buf) {
         return E_BAD_ADDRESS;
     }
 
+    // Key exclusion list
+    std::vector<char> exlcusions(KEY_EXCLUSIONS);
+
     // Set up randomizer
     std::random_device rd;
     std::mt19937 mt(rd());
-    std::uniform_int_distribution<int> dist(33, 126);   // Numbers are the ascii range for typable characters
+    std::uniform_int_distribution<int> dist(KEY_LOWER_BOUND, KEY_UPPER_BOUND);   // Numbers are the ascii range for typable characters
 
     // Now loop and generate key
     int i = 0;
+    int n = dist(mt);
     for (; i < KEYLEN; i++) {
-        buf[i] = dist(mt);
+        // Check if excluded char, repeat until not
+        while (std::count(exlcusions.begin(), exlcusions.end(), n)) {
+            n = dist(mt);
+        }
+
+        buf[i] = n;
+        n = dist(mt);
     }
 
     buf[i] = 0;

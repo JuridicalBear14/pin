@@ -48,10 +48,10 @@ void Client::user_login(std::string name, std::string key) {
         /////////////////////////// TURN ON TERMINAL ECHO HERE /////////////////////////////////
 
         /////////////////////////// ENCRYPT KEY HERE? //////////////////////////////////////
-
-        // Now set the key
-        strncpy(user.dynamic_key, key.c_str(), NAMELEN + 1);   // +1 for null
     }
+
+    // Now set the key
+    strncpy(user.dynamic_key, key.c_str(), NAMELEN + 1);   // +1 for null
 }
 
 /* Get username as a std::string */
@@ -178,7 +178,7 @@ int Client::init(int fd) {
     this->user = header.user;
 
     // Tell the user their session key (and master key if new)
-    if (user.master_key[0] != NULL) {   // New user
+    if (user.master_key[0] != 0) {   // New user
         std::cout << "As a new user you recieve two keys: a master key and a dynamic key. The dynamic key changes every time you log in, and as such you must have the previous login's dynamic key to log in. Your master key will always work, but should only be used as a backup and in trusted environments.\n";
         std::cout << "Your master key is: " << user.master_key << "\n";
     }

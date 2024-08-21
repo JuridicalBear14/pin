@@ -8,6 +8,7 @@ void util::error(int code, std::string message) {
 /* Convert a p_header status to string form */
 std::string util::status2str(int status) {
     // NOT IMPLEMENTED
+    return std::string("not implemented");
 }
 
 /* Log an event to output */
