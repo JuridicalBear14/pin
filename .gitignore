@@ -39,3 +39,4 @@ data/*
 client
 server
 pin.conf
+test_accounts.txt

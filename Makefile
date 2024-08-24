@@ -6,6 +6,9 @@ NET=net.cxx net.hxx
 UTIL=util.cxx util.hxx
 SECURE=secure.cxx secure.hxx
 
+# File nonsense for test accounts
+TEST_ACCOUNTS_FILE=test_accounts.txt
+
 SHARED=$(NET) $(UTIL) $(SECURE)# Files shared between both
 GCC=g++
 
@@ -25,8 +28,8 @@ server: $(SERVER) $(DATABASE) $(SHARED) defn.hxx
 
 run: both
 	gnome-terminal -- bash -c './server'
-	gnome-terminal -- bash -c './client local client1 key123'
-	gnome-terminal -- bash -c './client local client2 key123'
+	gnome-terminal -- bash -c './client local $(shell sed -n '1,1 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
+	gnome-terminal -- bash -c './client local $(shell sed -n '2,2 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
 
 clean:
 	rm server client
