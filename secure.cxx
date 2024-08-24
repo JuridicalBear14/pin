@@ -5,10 +5,10 @@ int secure::call_net(User user, int (*func), int count, ...) {
     return -1;
 }
 
-/* Lexically encrypt a given string */
-int secure::encrypt(std::string& input) {
-    // NOT IMPLEMENTED
-    return E_NONE;
+/* Encrypt a given string (size is excluding the null byte) */
+int secure::encrypt(char* input, int size) {
+    // Just call whatever the chosed encryption alg is
+    return secure::ENCRYPTION_ALG(input, size);
 }
 
 /* Generate a random user key */
@@ -42,6 +42,28 @@ int secure::generate_key(char* buf) {
     return E_NONE;
 }
 
+/* Encryption algorithms */
+
+/* Pcipher2 shifts each character's ascii value up by the unencrypted value of the next char, the final value is shifted by the average of previous values */
+int secure::pcipher2(char* buf, int size) {
+    // Check for null
+    if (buf[0] == 0) {
+        return E_BAD_ADDRESS;
+    }
+
+    // Loop through and move each char
+    int sum = 0;
+    for (int i = 0; i < size - 1; i++) {   // Loops up to the end
+        sum += buf[i];
+        buf[i] += buf[i + 1];
+    } 
+
+    buf[size - 1] = sum / (size - 1);
+    return E_NONE;
+}
+
+
+
 /* Validate key match for a perspective user and their record */
 bool secure::validate_user(User user, User record) {
     // First we should check the name and uid
@@ -49,6 +71,9 @@ bool secure::validate_user(User user, User record) {
         // If different name/uid, wrong person
         return false;
     }
+
+    // Encrypt user dynamic key to check against records
+    encrypt(user.dynamic_key, KEYLEN);
 
     // Now check the key(s) (only one has to match)
     if (strncmp(user.dynamic_key, record.master_key, sizeof(user.dynamic_key)) && strncmp(user.dynamic_key, record.dynamic_key, sizeof(user.dynamic_key))) {

@@ -100,8 +100,9 @@ int Server::init_connection(int fd, int ix) {
     }
 
     mut.lock();
-    // Remove master key field if used
+    // Remove master key field if used and encrypt dynamic key
     memset(users[ix].master_key, 0, KEYLEN + 1);
+    secure::encrypt(users[ix].dynamic_key, KEYLEN);
     mut.unlock();
 
     std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
@@ -252,6 +253,26 @@ void Server::msg_relay() {
                     continue;
                 }
 
+                // Validate the message sender
+                if (!secure::validate_user(header.user, users[i])) {
+                    // Bad credentials, so disconnect
+                    mut.lock();
+
+                    // Closed
+                    close(pollfds[i].fd);
+                    pollfds[i].fd = -1;
+
+                    // Wipe user entry
+                    users[i].uid = -1;
+                    users[i].cid = -1;
+                    users[i].name[0] = 0;
+
+                    mut.unlock();
+
+                    printf("Closed slot: %d\n", i);
+                    continue;
+                }
+
                 std::cout << "Message recieved from user: " << get_username(i) <<  ", uid: " << users[i].uid << ", Type: " << header.status << "\n";
 
                 // Check header
@@ -272,7 +293,7 @@ void Server::msg_relay() {
 
                         // Write to db
                         str = "<" + get_username(i) + "> " + str;
-                        std::cout << str << "\n";
+                        //std::cout << str << "\n";
                         ret = database->write_msg(header.user.cid, header, str);
                         if (ret != E_NONE && ret != DB_NONE) {
                             std::cout << "Could not write message\n";

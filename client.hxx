@@ -1,5 +1,6 @@
 #include "defn.hxx"
 #include "net.hxx"
+#include "secure.hxx"
 
 class Interface;
 

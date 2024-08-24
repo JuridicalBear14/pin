@@ -41,14 +41,15 @@ void Client::user_login(std::string name, std::string key) {
     while (key.size() != KEYLEN) {
         std::cout << "Please input user key:";
 
-        ////////////////////////// TURN OFF TERMINAL ECHO HERE //////////////////////////////////
+        secure::hide_keystrokes();
 
         std::cin >> key;
 
-        /////////////////////////// TURN ON TERMINAL ECHO HERE /////////////////////////////////
-
-        /////////////////////////// ENCRYPT KEY HERE? //////////////////////////////////////
+        secure::show_keystrokes();
     }
+
+    // Newline for future printing
+    std::cout << "\n";
 
     // Now set the key
     strncpy(user.dynamic_key, key.c_str(), NAMELEN + 1);   // +1 for null

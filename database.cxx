@@ -166,6 +166,11 @@ int DB_FS::add_user(User user) {
         return DB_NONE;
     }
 
+    // First we encrypt both user keys, or quit if it fails
+    if ((secure::encrypt(user.dynamic_key, KEYLEN) != E_NONE) || (secure::encrypt(user.master_key, KEYLEN) != E_NONE)) {
+        return DB_ERR;
+    }
+
     mut.lock();
 
     // Open user file
@@ -225,13 +230,16 @@ int DB_FS::get_user_id(User& user, bool create) {
                     return E_GENERIC;
                 }
 
-                // Write new dynamic key to db by seeking back and writing new struct
-                memcpy(&user.master_key, &buf.master_key, sizeof(user.master_key));   // Copy the master key
-                f.seekg(-(sizeof(user)), std::ios::cur);   // Seek negative [user] bytes from current position
-                f.write((char*) &user, sizeof(user));
+                User u_write = user;   // new struct to use for writing (aka excrypted dynamic key and master key)
 
-                // Remove master key field if used
-                memset(user.master_key, 0, sizeof(user.master_key));
+                if (secure::encrypt(u_write.dynamic_key, KEYLEN) != E_NONE) {
+                    return E_GENERIC;
+                }
+
+                // Write new dynamic key to db by seeking back and writing new struct
+                memcpy(&u_write.master_key, &buf.master_key, sizeof(u_write.master_key));   // Copy the master key
+                f.seekg(-(sizeof(u_write)), std::ios::cur);   // Seek negative [user] bytes from current position
+                f.write((char*) &u_write, sizeof(u_write));
                 
                 return E_NONE;
             } else {
