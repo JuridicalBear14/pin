@@ -137,11 +137,40 @@ int Client::build_new_convo(Convo& c) {
         buf.substr(0, 14);
     }
 
-    c.cid = -1;
-    c.global = true;    // NOT IMPLEMENTED
     strncpy(c.name, buf.c_str(), NAMELEN);
     c.name[NAMELEN] = 0;   // Make sure null at the end
 
+    // Get users for convo
+    std::cout << "Please enter up to 9 participant usernames separated by spaces, or an ! for a global chat (all users)\n";
+    std::cin >> buf;
+    buf.append(" ");  // Add a space to make parsing simpler
+
+    // Parse out names
+    if (buf[0] == '!') {   // Blank input, so global
+        c.global = true;
+    } else {   // Some input
+        c.global = false;
+
+        // First add ourselves to the list
+        strncpy(c.users[0], user.name, NAMELEN);
+        c.users[0][NAMELEN] = 0;   // Ensure 0
+
+        // Loop and pull out names
+        std::string name;
+        for (int i = 1; i < MAX_CONVO_USERS; i++) {
+            if (buf.length() < 1) {
+                break;
+            }
+
+            name = buf.substr(0, buf.find(" "));
+            buf.erase(0, buf.find(" ") + 1);
+
+            strncpy(c.users[i], name.c_str(), NAMELEN);
+            c.users[i][NAMELEN] = 0;   // Ensure 0
+        }
+    }
+
+    c.cid = -1;
     return E_NONE;
 }
 

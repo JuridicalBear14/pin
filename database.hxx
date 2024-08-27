@@ -16,7 +16,7 @@ class Database {
         virtual int write_msg(int cid, p_header header, std::string str) {return -1;};
         virtual int get_all_messages(int cid, std::vector<std::string>& messages) {return -1;};
         virtual int get_messages(int cid, std::vector<std::string>& messages, int count) {return -1;};
-        virtual int get_convo_index(std::vector<Convo>& items) {return -1;};
+        virtual int get_convo_index(std::vector<Convo>& items, User user) {return -1;};
         virtual int get_user_id(User& user, bool create) {return -1;};
         virtual int create_convo(Convo& c) {return -1;};
 
@@ -32,7 +32,7 @@ class DB_FS: public Database {
         int add_user(User user);
         int get_all_messages(int cid, std::vector<std::string>& messages);
         int get_messages(int cid, std::vector<std::string>& messages, int count);
-        int get_convo_index(std::vector<Convo>& items);
+        int get_convo_index(std::vector<Convo>& items, User user);
         int get_user_id(User& user, bool create);
         int create_convo(Convo& c);
 
@@ -42,6 +42,7 @@ class DB_FS: public Database {
         int generate_id();
         int update_file_header(std::string file, int count);
         int read_file_header(std::string file, int type, int size);
+        bool check_convo(Convo c, User user);
 
         int db_id;
         std::string db_path;

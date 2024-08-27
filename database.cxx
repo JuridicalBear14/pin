@@ -317,8 +317,24 @@ int DB_FS::get_messages(int cid, std::vector<std::string>& messages, int count) 
     return -1;
 }
 
-/* Fetch entries for convo index */
-int DB_FS::get_convo_index(std::vector<Convo>& items) {
+/* Chheck if a given user is in a convo */
+bool DB_FS::check_convo(Convo c, User user) {
+    if (c.global) {
+        return true;
+    }
+
+    // Loop through convo participant list
+    for (int i = 0; i < MAX_CONVO_USERS; i++) {
+        if (!strcmp(c.users[i], user.name)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/* Fetch entries for convo index availible to user */
+int DB_FS::get_convo_index(std::vector<Convo>& items, User user) {
     mut.lock();
 
     if (db_id == DB_NONE) {
@@ -330,6 +346,7 @@ int DB_FS::get_convo_index(std::vector<Convo>& items) {
 
         items.push_back(c);
 
+        mut.lock();
         return DB_NONE;
     }
 
@@ -349,7 +366,11 @@ int DB_FS::get_convo_index(std::vector<Convo>& items) {
     Convo c;
     for (int i = 0; i < count; i++) {
         f.read((char*) &c, sizeof(c));
-        items.push_back(c);   
+
+        // Check if this user can view these
+        if (check_convo(c, user)) {
+            items.push_back(c);
+        }
     }
 
     f.close();

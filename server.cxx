@@ -115,7 +115,7 @@ void Server::sync_client_db(Database* database, int fd, User user) {
 
     // Get items
     std::vector<Convo> items;
-    if (database->get_convo_index(items) != E_NONE) {
+    if (database->get_convo_index(items, user) != E_NONE) {
         // Error reading, so log and continue with empty list
         std::cout << "Could not read convo index\n";
     }

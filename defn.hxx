@@ -101,6 +101,6 @@ struct pin_db_header {
 typedef struct Convo {
     int cid;
     bool global;   // Whether or not this is open to everyone (if not then users tab gives permission)
-    User users[MAX_CONVO_USERS];
+    char users[MAX_CONVO_USERS][NAMELEN + 1];
     char name[NAMELEN + 1];   // +1 for null-term
 } Convo;
