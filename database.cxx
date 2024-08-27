@@ -1,11 +1,8 @@
-/* Implementation for Databases */
 #include "database.hxx"
 
-// ********************************** Basic database implementation *********************************************** //
-
-
-
-// ********************************** File system database implementation *********************************************** //
+// MARK: BASE
+// ****************************** <Database construction> ************************* //
+// For now only file system db, theoretically could substitute for SQL
 
 /* Constructor for file system database. Id determines which db to use (-1 for none, 0 for make new) */
 DB_FS::DB_FS(int id) {
@@ -160,6 +157,45 @@ int DB_FS::generate_id() {
     return max + 1;
 }
 
+/* Update the item count for a file header */
+int DB_FS::update_file_header(std::string file, int count) {
+    // Open file and read current header
+    std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
+    pin_db_header h;
+    f.read((char*) &h, sizeof(h));
+
+    // Seet to start and write updated header
+    f.seekg(0, f.beg);
+    h.itemno = count;
+    f.write((char*) &h, sizeof(h));
+
+    return E_NONE;
+}
+
+/* Read the header of a given file and return errors for wrong data, otherwise return item count */
+int DB_FS::read_file_header(std::string file, int type, int size) {
+    std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
+
+    struct pin_db_header h;
+    f.read((char*) &h, sizeof(h));
+    f.close();
+
+    if (h.type != type || h.version != PIN_VERSION || h.itemsize != size) {
+        std::cout << "err\n";
+        return DB_ERR;
+    }
+
+    return h.itemno;
+}
+
+// ****************************** </Database construction> ****************************** //
+
+
+
+
+// MARK: Users
+// ****************************** <User functions> ****************************** //
+
 /* Write a new user to the db */
 int DB_FS::add_user(User user) {
     if (db_id == DB_NONE) {
@@ -271,6 +307,14 @@ int DB_FS::get_user_id(User& user, bool create) {
     return E_GENERIC;
 }
 
+// ****************************** </User functions> ****************************** //
+
+
+
+
+
+// MARK: Messages
+// ****************************** <Message functions> ****************************** //
 
 /* Write a message to the database and return bytes written */
 int DB_FS::write_msg(int cid, p_header header, std::string str) {
@@ -315,6 +359,47 @@ int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
 int DB_FS::get_messages(int cid, std::vector<std::string>& messages, int count) {
     // NOT IMPLEMENTED
     return -1;
+}
+
+// ****************************** </Message functions> ****************************** //
+
+
+
+
+
+// MARK: Convos
+// ****************************** <Convo functions> ****************************** //
+
+/* Create a new convo file (from a convo struct) and update the index and cid */
+int DB_FS::create_convo(Convo& c) {
+    if (db_id == DB_NONE) {
+        return DB_NONE;
+    }
+    mut.lock();
+
+    // Open index
+    std::fstream f(db_path + "convo_index", std::ios::app | std::ios::out | std::ios::binary);
+
+    // Read header
+    int count = read_file_header(db_path + "convo_index", FILE_TYPE_CONVO_INDEX, sizeof(Convo));
+
+    c.cid = count + 1;
+
+    // Seek to the end of the file and write the convo
+    f.seekg(0, f.end);
+    f.write((char*) &c, sizeof(c));
+
+    f.close();
+
+    // Update the file header to reflect the new item
+    update_file_header(db_path + "convo_index", c.cid);
+
+    // Finally, create the convo file
+    std::ofstream create(db_path + "convo_" + std::to_string(c.cid));
+    create.close();
+
+    mut.unlock();
+    return c.cid;
 }
 
 /* Check if a given user is in a convo */
@@ -379,65 +464,4 @@ int DB_FS::get_convo_index(std::vector<Convo>& items, User user) {
     return E_NONE;
 }
 
-/* Create a new convo file (from a convo struct) and update the index and cid */
-int DB_FS::create_convo(Convo& c) {
-    if (db_id == DB_NONE) {
-        return DB_NONE;
-    }
-    mut.lock();
-
-    // Open index
-    std::fstream f(db_path + "convo_index", std::ios::app | std::ios::out | std::ios::binary);
-
-    // Read header
-    int count = read_file_header(db_path + "convo_index", FILE_TYPE_CONVO_INDEX, sizeof(Convo));
-
-    c.cid = count + 1;
-
-    // Seek to the end of the file and write the convo
-    f.seekg(0, f.end);
-    f.write((char*) &c, sizeof(c));
-
-    f.close();
-
-    // Update the file header to reflect the new item
-    update_file_header(db_path + "convo_index", c.cid);
-
-    // Finally, create the convo file
-    std::ofstream create(db_path + "convo_" + std::to_string(c.cid));
-    create.close();
-
-    mut.unlock();
-    return c.cid;
-}
-
-/* Update the item count for a file header */
-int DB_FS::update_file_header(std::string file, int count) {
-    // Open file and read current header
-    std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
-    pin_db_header h;
-    f.read((char*) &h, sizeof(h));
-
-    // Seet to start and write updated header
-    f.seekg(0, f.beg);
-    h.itemno = count;
-    f.write((char*) &h, sizeof(h));
-
-    return E_NONE;
-}
-
-/* Read the header of a given file and return errors for wrong data, otherwise return item count */
-int DB_FS::read_file_header(std::string file, int type, int size) {
-    std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
-
-    struct pin_db_header h;
-    f.read((char*) &h, sizeof(h));
-    f.close();
-
-    if (h.type != type || h.version != PIN_VERSION || h.itemsize != size) {
-        std::cout << "err\n";
-        return DB_ERR;
-    }
-
-    return h.itemno;
-}
+// ****************************** </Convo functions> ****************************** //

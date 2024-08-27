@@ -1,11 +1,19 @@
 #include "local.hxx"
 
+// MARK: BASE
+// ****************************** <Basic setup and utility> ****************************** //
+
 Client::Client() {
     interface = new MessageWindow();
     interface->set_parent(this);
     user.cid = -1;
     memset(user.master_key, 0, sizeof(user.master_key));
     memset(user.dynamic_key, 0, sizeof(user.dynamic_key));
+}
+
+/* Get username as an std::string */
+std::string Client::getname() {
+    return std::string(user.name);
 }
 
 /* Get user login info from terminal before anything else */
@@ -67,10 +75,14 @@ void Client::user_login(std::string name, std::string key) {
     strncpy(user.dynamic_key, key.c_str(), NAMELEN + 1);   // +1 for null
 }
 
-/* Get username as a std::string */
-std::string Client::getname() {
-    return std::string(user.name);
-}
+// ****************************** </Basic setup and utility> ****************************** //
+
+
+
+
+
+// MARK: Intf. Handler
+// ****************************** <Interface handler functions> ****************************** //
 
 /* Create and manage all interfaces */
 void Client::interface_handler() {
@@ -185,6 +197,15 @@ int Client::build_new_convo(Convo& c) {
     c.cid = -1;
     return E_NONE;
 }
+
+// ****************************** </Interface handler functions> ****************************** //
+
+
+
+
+
+// MARK: Server Conn.
+// ****************************** <Server connection related functions> ****************************** //
 
 /* Initialize connection to server and authenticate user */
 int Client::init(int fd) {
@@ -327,12 +348,9 @@ int Client::send_and_wait(p_header header, void* buf, std::condition_variable* w
     return E_NONE;
 }
 
-void Client::set_client_fd(int fd) {
-    mut.lock();
-    client_fd = fd;
-    mut.unlock();
-}
 
+
+// MARK: Reciever loop
 /* Recieve message and write to interface */
 void Client::recieve() {
     std::string str;
@@ -390,3 +408,5 @@ void Client::recieve() {
         }
     }
 }
+
+// ****************************** </Server connection related functions> ****************************** //

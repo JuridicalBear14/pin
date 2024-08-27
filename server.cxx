@@ -1,5 +1,8 @@
 #include "server.hxx"
 
+// MARK: BASE
+// ****************************** <Basic setup and utility> ****************************** //
+
 Server::Server(int fd) {
     server_fd = fd;
 
@@ -10,22 +13,39 @@ Server::Server(int fd) {
     }
 }
 
-/* Connect to database */
-void Server::connect_db(Database* db) {
-    mut.lock();
-    database = db;
-    mut.unlock();
-}
-
 /* Start up the server (for now just calls relay, but will be expanded upon later) */
 void Server::start_server() {
     msg_relay();
 }
 
-/* Write a message to the output destination */
-void Server::log(std::string str) {
-    // NOT IMPLEMENTED
+/* User a user's name as an std::string */
+std::string Server::get_username(int ix) {
+    return std::string(users[ix].name);
 }
+
+/* Return the next open index for user slots */
+int Server::nextindex() {
+    mut.lock();
+
+    for (int i = 0; i < MAXUSR; i++) {
+        if (pollfds[i].fd == -1) {
+            mut.unlock();
+            return i;
+        }
+    }
+
+    // No open slots
+    mut.unlock();
+    return E_NO_SPACE;
+}
+
+// ****************************** </Basic setup and utility> ****************************** //
+
+
+
+
+// MARK: New connect
+// ****************************** <Incoming connection handler> ************************* //
 
 /* Listen and accept incoming connections */
 void Server::connection_listener(struct sockaddr_in address, int addrlen) {
@@ -61,11 +81,6 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
 
         printf("Connection accepted in slot %d, fd: %d\n", index, pollfds[index].fd);
     }
-}
-
-/* User a user's name as an std::string */
-std::string Server::get_username(int ix) {
-    return std::string(users[ix].name);
 }
 
 /* Initial connection to client, read their name and then transfer convo history */
@@ -107,6 +122,54 @@ int Server::init_connection(int fd, int ix) {
 
     std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
     return E_NONE;
+}
+
+// ****************************** </Incoming connection handler> ************************* //
+
+
+
+
+// MARK: User service
+// ****************************** <User service functions> ************************* //
+
+/* Send message to all other users in the same convo */
+void Server::sendall(int ix, std::string buf) {
+    // Construct header
+    p_header header;
+    header.user = users[ix];
+    header.status = STATUS_MSG;
+
+    mut.lock();
+
+    // Construct message
+    header.size = buf.length();
+
+    for (int i = 0; i < MAXUSR; i++) {
+        if (pollfds[i].fd != -1 && users[i].cid == header.user.cid && i != ix) {
+            // Send to socket
+            if (net::send_msg(pollfds[i].fd, header, buf) != E_NONE) {
+                std::cout << "Failed to send on slot: " << ix << "\n";
+            }
+        }
+    }
+
+    mut.unlock();
+}
+
+// ****************************** </User service functions> ************************* //
+
+
+
+
+
+// MARK: Database
+// ****************************** <Database connection functions> ************************* //
+
+/* Connect to database */
+void Server::connect_db(Database* db) {
+    mut.lock();
+    database = db;
+    mut.unlock();
 }
 
 /* Catch the client up on the contents of the db */
@@ -176,45 +239,11 @@ void Server::sync_client_convo(Database* database, int fd, User user) {
     std::cout << "Sync complete\n";
 }
 
-int Server::nextindex() {
-    mut.lock();
+// ****************************** </Database connection functions> ************************* //
 
-    for (int i = 0; i < MAXUSR; i++) {
-        if (pollfds[i].fd == -1) {
-            mut.unlock();
-            return i;
-        }
-    }
 
-    // No open slots
-    mut.unlock();
-    return E_NO_SPACE;
-}
 
-/* Send message to all other users in the same convo */
-void Server::sendall(int ix, std::string buf) {
-    // Construct header
-    p_header header;
-    header.user = users[ix];
-    header.status = STATUS_MSG;
-
-    mut.lock();
-
-    // Construct message
-    header.size = buf.length();
-
-    for (int i = 0; i < MAXUSR; i++) {
-        if (pollfds[i].fd != -1 && users[i].cid == header.user.cid && i != ix) {
-            // Send to socket
-            if (net::send_msg(pollfds[i].fd, header, buf) != E_NONE) {
-                std::cout << "Failed to send on slot: " << ix << "\n";
-            }
-        }
-    }
-
-    mut.unlock();
-}
-
+// MARK: Reciever loop
 /* Listen for incoming messages and relay them across the network */
 void Server::msg_relay() {
     int n;

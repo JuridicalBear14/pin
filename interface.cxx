@@ -1,7 +1,7 @@
 #include "local.hxx"
 
-// MARK: Base
-// ****************************** Basic interface implementation ************************* //
+// MARK: BASE
+// ****************************** <Basic interface implementation> ****************************** //
 
 void Interface::set_parent(Client* c) {
     parent = c;
@@ -45,101 +45,14 @@ std::string Interface::get_name() {
     return parent->getname();
 }
 
+// ****************************** </Basic interface implementation> ****************************** //
+
 
 
 
 
 // MARK: Message Box
-// ****************************** Message box interface implementation ****************************** //
-
-/* Write all data to screen */
-void MessageWindow::write_to_screen() {
-    // Check if we are ready to write
-    if (!active) {
-        return;
-    }
-
-    mutex.lock();
-    int line = MESSAGE_BOX_HEIGHT - 1;   // Line to add to, starts at bottom
-
-    // Clear message_box
-    clear_window(message_box, MESSAGE_BOX_HEIGHT);
-
-    int line_height;
-    for (int i = messages.size() - 1 - display_offset; i >= 0; i--) {
-        // Get line height for wrapping pruposes
-        line_height = messages[i].length() / MESSAGE_BOX_WIDTH;
-
-        mvwaddstr(message_box, (line -= line_height), 0, messages[i].c_str());
-        line -= 1 + MSGGAP;   // Allows for configurable text gap
-    }
-
-    wmove(typebox, y, x);
-    keypad(typebox, TRUE);
-    wrefresh(message_box);
-    wrefresh(typebox);
-
-    mutex.unlock();
-}
-
-/* Add message to list */
-void MessageWindow::update_data(std::string buf, int type) {
-    mutex.lock();
-
-    // If somehow empty string, discard
-    if (buf.length() < 1) {
-        mutex.unlock();
-        return;
-    }
-    
-    switch (type) {
-        case STATUS_NULL:   // Local
-            messages.push_back("<" + get_name() + "> " + buf);
-            break;
-
-        case STATUS_MSG:   // New msg
-            messages.push_back(buf);
-            break;
-        
-        case STATUS_MSG_OLD:   // old msg
-            //messages.insert(messages.begin(), buf);
-            messages.push_back(buf);
-            break;
-    }
-
-    mutex.unlock();
-}
-
-
-/* Clears a window's contents (no mutex b/c called under mutex) */
-void MessageWindow::clear_window(WINDOW* win, int height) {
-    // Create clearing string (C style because leagacy and it works)
-    char blanks[MESSAGE_BOX_WIDTH];
-    sprintf(blanks, "%*c", MESSAGE_BOX_WIDTH, ' ');
-
-    // Clear each line
-    for (int i = 0; i < height; i++) {
-        mvwaddstr(win, i, 0, blanks);   // Clear line
-    }
-
-    wrefresh(win);
-}
-
-/* Create and draw a window */
-WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
-    WINDOW* temp;
-
-    mutex.lock();
-
-    temp = newwin(height, width, y, x);
-    wborder(temp, '|', '|', '-', '-', '+', '+', '+', '+');
-
-    wrefresh(temp);
-
-    mutex.unlock();
-
-    return temp;
-}
+// ****************************** <Message box interface implementation> ****************************** //
 
 /* Initial setup */
 int MessageWindow::start_interface() {
@@ -207,7 +120,95 @@ int MessageWindow::create_screen() {
     return exit_code;
 }
 
-// Main event loop for keys
+/* Clears a window's contents (no mutex b/c called under mutex) */
+void MessageWindow::clear_window(WINDOW* win, int height) {
+    // Create clearing string (C style because leagacy and it works)
+    char blanks[MESSAGE_BOX_WIDTH];
+    sprintf(blanks, "%*c", MESSAGE_BOX_WIDTH, ' ');
+
+    // Clear each line
+    for (int i = 0; i < height; i++) {
+        mvwaddstr(win, i, 0, blanks);   // Clear line
+    }
+
+    wrefresh(win);
+}
+
+/* Create and draw a window */
+WINDOW* MessageWindow::create_border(int height, int width, int x, int y) {
+    WINDOW* temp;
+
+    mutex.lock();
+
+    temp = newwin(height, width, y, x);
+    wborder(temp, '|', '|', '-', '-', '+', '+', '+', '+');
+
+    wrefresh(temp);
+
+    mutex.unlock();
+
+    return temp;
+}
+
+/* Write all data to screen */
+void MessageWindow::write_to_screen() {
+    // Check if we are ready to write
+    if (!active) {
+        return;
+    }
+
+    mutex.lock();
+    int line = MESSAGE_BOX_HEIGHT - 1;   // Line to add to, starts at bottom
+
+    // Clear message_box
+    clear_window(message_box, MESSAGE_BOX_HEIGHT);
+
+    int line_height;
+    for (int i = messages.size() - 1 - display_offset; i >= 0; i--) {
+        // Get line height for wrapping pruposes
+        line_height = messages[i].length() / MESSAGE_BOX_WIDTH;
+
+        mvwaddstr(message_box, (line -= line_height), 0, messages[i].c_str());
+        line -= 1 + MSGGAP;   // Allows for configurable text gap
+    }
+
+    wmove(typebox, y, x);
+    keypad(typebox, TRUE);
+    wrefresh(message_box);
+    wrefresh(typebox);
+
+    mutex.unlock();
+}
+
+/* Add message to list */
+void MessageWindow::update_data(std::string buf, int type) {
+    mutex.lock();
+
+    // If somehow empty string, discard
+    if (buf.length() < 1) {
+        mutex.unlock();
+        return;
+    }
+    
+    switch (type) {
+        case STATUS_NULL:   // Local
+            messages.push_back("<" + get_name() + "> " + buf);
+            break;
+
+        case STATUS_MSG:   // New msg
+            messages.push_back(buf);
+            break;
+        
+        case STATUS_MSG_OLD:   // old msg
+            //messages.insert(messages.begin(), buf);
+            messages.push_back(buf);
+            break;
+    }
+
+    mutex.unlock();
+}
+
+/* Main event loop for keys */
 int MessageWindow::event_loop(WINDOW* typebox) {
     // A couple quick constants (not const bc screen resizing)
     int XMAX = TYPEBOX_WIDTH - 1;
@@ -306,3 +307,16 @@ int MessageWindow::event_loop(WINDOW* typebox) {
 
     return EXIT_NONE;
 }
+
+// ****************************** </Message box interface implementation> ****************************** //
+
+
+
+
+
+// MARK: Scrollable List
+// ****************************** <Scrollable list interface implementation> ****************************** //
+
+
+
+// ****************************** </Scrollable list interface implementation> ****************************** //
