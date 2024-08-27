@@ -317,7 +317,7 @@ int DB_FS::get_messages(int cid, std::vector<std::string>& messages, int count) 
     return -1;
 }
 
-/* Chheck if a given user is in a convo */
+/* Check if a given user is in a convo */
 bool DB_FS::check_convo(Convo c, User user) {
     if (c.global) {
         return true;

@@ -1,6 +1,7 @@
 #include "local.hxx"
 
-// ********************************** Basic interface implementation *********************************************** //
+// MARK: Base
+// ****************************** Basic interface implementation ************************* //
 
 void Interface::set_parent(Client* c) {
     parent = c;
@@ -44,7 +45,12 @@ std::string Interface::get_name() {
     return parent->getname();
 }
 
-// ********************************** Message box interface implementation *********************************************** //
+
+
+
+
+// MARK: Message Box
+// ****************************** Message box interface implementation ****************************** //
 
 /* Write all data to screen */
 void MessageWindow::write_to_screen() {
@@ -179,9 +185,11 @@ int MessageWindow::create_screen() {
     // Now we're ready to go
     active = true;
 
-    // Fetch messages from server
-    std::vector<std::string> s;
-    parent->request_convo(s);
+    // Fetch messages from server if we don't have any
+    if (messages.size() == 0) {
+        std::vector<std::string> s;
+        parent->request_convo(s);
+    }
 
     // Draw any messages
     write_to_screen();

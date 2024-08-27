@@ -7,4 +7,5 @@ class util {
         static std::string status2str(int status);
         static void log(std::streambuf stream, std::string event);
         static void prompt(std::string message, std::string& buffer);
+        static char char_exclusion(std::string str);
 };

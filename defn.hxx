@@ -64,6 +64,14 @@ enum error_code {
     E_DENIED
 };
 
+// Key/username character range bounds
+#define KEY_LOWER_BOUND 48  // 0 (skips shift-number keys since they have special bash meanings)
+#define KEY_UPPER_BOUND 126  // ~ (end of typable characters)
+
+// Table of character exclusions for key generation (since keys are otherwise comprised of all typable characters past 0)
+#define KEY_EXCLUSIONS {'\\', '|', '`', '<', '>', ';'}
+// ; < > \ ` |
+
 // File type constants
 #define FILE_TYPE_NULL 0
 #define FILE_TYPE_CONVO_INDEX 1

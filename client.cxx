@@ -23,8 +23,20 @@ void Client::user_login(std::string name, std::string key) {
             s = std::tolower(s.c_str()[0]);   // Obnoxious process to lowercase a string
         }
 
-        std::cout << "Please input name: ";
-        std::cin >> name;
+        // Loop until we get a valid name
+        char c;
+        while (true) {
+            std::cout << "Please input name: ";
+            std::cin >> name;
+
+            // If bad, exit
+            if ((c = util::char_exclusion(name)) != 0) {
+                std::cout << "Invalid name, cannot use: " << c << "\n";
+                continue;
+            }
+
+            break;
+        }
 
         // If a new user, skip asking for key
         if (s == "n") {

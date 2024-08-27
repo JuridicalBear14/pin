@@ -31,5 +31,9 @@ run: both
 	gnome-terminal -- bash -c './client local $(shell sed -n '1,1 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
 	gnome-terminal -- bash -c './client local $(shell sed -n '2,2 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
 
+# Run just one client
+runc: both
+	./client local $(shell sed -n '1,1 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')
+
 clean:
 	rm server client

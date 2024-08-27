@@ -3,14 +3,6 @@
 #include <random>
 /* Class for security focused utilities */
 
-// Key character range bounds
-#define KEY_LOWER_BOUND 48  // 0 (skips shift-number keys since they have special bash meanings)
-#define KEY_UPPER_BOUND 126  // ~ (end of typable characters)
-
-// Table of character exclusions for key generation (since keys are otherwise comprised of all typable characters past 0)
-#define KEY_EXCLUSIONS {'\\', '|', '`', '<', '>', ';'}
-// ; < > \ ` |
-
 // default encryption algorithm used
 #define ENCRYPTION_ALG pcipher2
 

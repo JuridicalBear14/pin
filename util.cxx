@@ -20,3 +20,19 @@ void util::log(std::streambuf stream, std::string event) {
 void util::prompt(std::string message, std::string& buffer) {
 
 }
+
+/* Check a given input string for excluded characters (for names and keys), if one is found return the offending character (or 0 for success) */
+char util::char_exclusion(std::string str) {
+    // Key exclusion list
+    std::vector<char> exlcusions(KEY_EXCLUSIONS);
+
+    // Loop and check for errors
+    for (char c : str) {
+        // Check if excluded char, if so return c
+        if ((c < KEY_LOWER_BOUND) || (c > KEY_UPPER_BOUND) || std::count(exlcusions.begin(), exlcusions.end(), c)) {
+            return c;
+        }
+    }
+
+    return 0;
+}
