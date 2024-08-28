@@ -1,3 +1,5 @@
+#pragma once
+
 #include "defn.hxx"
 #include "net.hxx"
 #include "secure.hxx"

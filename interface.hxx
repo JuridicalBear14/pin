@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ncurses.h>
 #include <ctype.h>
 #include "defn.hxx"

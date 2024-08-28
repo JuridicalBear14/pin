@@ -1,7 +1,10 @@
+#pragma once
+
 #include "defn.hxx"
 #include "database.hxx"
 #include "net.hxx"
 #include "util.hxx"
+#include "server_control.hxx"
 
 // Constants
 #define SERVER_SETTINGS_FILE "pin.conf"
@@ -13,12 +16,13 @@ struct server_settings {
 };
 
 class Server {
+    friend class Server_control;
+
     public:
         Server(int fd);
         void start_server();
         void connection_listener(struct sockaddr_in address, int addrlen);
         void connect_db(Database* database);
-        static void log(std::string str);
 
     private:
         int nextindex();

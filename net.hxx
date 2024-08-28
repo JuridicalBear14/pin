@@ -1,3 +1,5 @@
+#pragma once
+
 /* Common shared net code between server and client */
 #include "defn.hxx"
 

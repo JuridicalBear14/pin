@@ -1,8 +1,19 @@
 #include "server.hxx"
 
+// Yes, I am extremely lazy
+struct sockaddr_in address;
+int addrlen;
+
 void* start_server_relay(void* args) {
     Server* s = (Server*) args;
     s->start_server();
+
+    return NULL;
+}
+
+void* start_connection_listener(void* args) {
+    Server* s = (Server*) args;
+    s->connection_listener(address, addrlen);
 
     return NULL;
 }
@@ -64,9 +75,8 @@ int read_settings(struct server_settings& s) {
 /* Main startup and port accept function */
 int main(void) {
     int server_fd, new_socket;
-    struct sockaddr_in address;
     int opt = 1;
-    int addrlen = sizeof(address);
+    addrlen = sizeof(address);
 
     // Read server settings
     struct server_settings settings;
@@ -102,6 +112,7 @@ int main(void) {
     }
     
     Server s(server_fd);
+    Server_control scontrol(&s);
     Database* db = new DB_FS(settings.db);
 
     // Connect db to server
@@ -109,7 +120,13 @@ int main(void) {
 
     // Set up relay thread
     std::thread r_thread(start_server_relay, &s);
+    std::thread cl_thread(start_connection_listener, &s);
+
+    // Detach both since we only want to wait on server controls
     r_thread.detach();
+    cl_thread.detach();
+
+    scontrol.start_scontrol();
 
     // Playing with printing IP
     /*
@@ -119,8 +136,6 @@ int main(void) {
     fprintf(stderr, "IP address is: %s\n", name);
     fprintf(stderr, "port is: %d\n", (int) ntohs(address.sin_port));
     */
-
-    s.connection_listener(address, addrlen);
 
     // Closing the listening socket
     shutdown(server_fd, SHUT_RDWR);

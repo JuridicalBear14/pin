@@ -5,6 +5,11 @@ void util::error(int code, std::string message) {
     // NOT IMPLEMENTED
 }
 
+/* Convert an error code to a string */
+std::string util::error2str(int code) {
+    return std::string("not implemented");
+}
+
 /* Convert a p_header status to string form */
 std::string util::status2str(int status) {
     // NOT IMPLEMENTED
@@ -12,7 +17,7 @@ std::string util::status2str(int status) {
 }
 
 /* Log an event to output */
-void util::log(std::streambuf stream, std::string event) {
+void util::log(std::streambuf stream, std::string message) {
 
 }
 

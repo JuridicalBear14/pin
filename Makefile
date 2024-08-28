@@ -1,10 +1,15 @@
-CLIENT=p_client.cxx client.cxx client.hxx
-SERVER=p_server.cxx server.cxx server.hxx
-INTERFACE=interface.cxx interface.hxx
-DATABASE=database.cxx database.hxx
-NET=net.cxx net.hxx
-UTIL=util.cxx util.hxx
-SECURE=secure.cxx secure.hxx
+CLIENT=p_client.cxx client.cxx
+SERVER=p_server.cxx server.cxx
+INTERFACE=interface.cxx
+DATABASE=database.cxx
+SERVER_CONTROL=server_control.cxx
+NET=net.cxx
+UTIL=util.cxx
+SECURE=secure.cxx
+
+SHARED_HEADERS=net.hxx util.hxx secure.hxx defn.hxx
+SERVER_HEADERS=server.hxx database.hxx server_control.hxx $(SHARED_HEADERS)
+CLIENT_HEADERS=client.hxx interface.hxx $(SHARED_HEADERS)
 
 # File nonsense for test accounts
 TEST_ACCOUNTS_FILE=test_accounts.txt
@@ -14,11 +19,11 @@ GCC=g++
 
 both: client server
 
-client: $(CLIENT) $(INTERFACE) $(SHARED) defn.hxx
+client: $(CLIENT) $(INTERFACE) $(SHARED) $(CLIENT_HEADERS)
 	$(GCC) -o client $(CLIENT) $(INTERFACE) $(SHARED) -lpthread -lncurses -g
 
-server: $(SERVER) $(DATABASE) $(SHARED) defn.hxx
-	$(GCC) -o server $(SERVER) $(DATABASE) $(SHARED) -lpthread -g
+server: $(SERVER) $(DATABASE) $(SERVER_CONTROL) $(SHARED) $(SERVER_HEADERS)
+	$(GCC) -o server $(SERVER) $(DATABASE) $(SERVER_CONTROL) $(SHARED) -lpthread -g
 
 # interface: $(INTERFACE) defn.hxx
 # 	$(GCC) -o interface $(INTERFACE) -lncurses -g
