@@ -20,10 +20,10 @@ GCC=g++
 both: client server
 
 client: $(CLIENT) $(INTERFACE) $(SHARED) $(CLIENT_HEADERS)
-	$(GCC) -o client $(CLIENT) $(INTERFACE) $(SHARED) -lpthread -lncurses -g
+	$(GCC) -o client $(CLIENT) $(INTERFACE) $(SHARED) -lpthread -lncurses -g -std=c++17
 
 server: $(SERVER) $(DATABASE) $(SERVER_CONTROL) $(SHARED) $(SERVER_HEADERS)
-	$(GCC) -o server $(SERVER) $(DATABASE) $(SERVER_CONTROL) $(SHARED) -lpthread -g
+	$(GCC) -o server $(SERVER) $(DATABASE) $(SERVER_CONTROL) $(SHARED) -lpthread -g -std=c++17
 
 # interface: $(INTERFACE) defn.hxx
 # 	$(GCC) -o interface $(INTERFACE) -lncurses -g

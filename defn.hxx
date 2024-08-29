@@ -47,11 +47,14 @@ enum header_status {
     STATUS_ERROR,   // Something on sender's end failed
     STATUS_USER_AUTH,   // Authenticating user
     STATUS_USER_DENIED,   // User auth denied
-    STATUS_NEW_USER     // New user request
+    STATUS_NEW_USER,     // New user request
+
+    STATUS_END   // Final status code (for bounding purposes)
 };
 
 // Error codes
 enum error_code {
+    DB_ERR = -3,   // Error in db
     E_NO_SPACE = -1,   // -1 to not conflict with other id systems
     E_NONE,
     E_CONNECTION_CLOSED,
@@ -61,7 +64,9 @@ enum error_code {
     E_FAILED_WRITE,
     E_TOO_BIG,
     E_GENERIC,
-    E_DENIED
+    E_DENIED,
+
+    E_END   // Final error code
 };
 
 // Key/username character range bounds

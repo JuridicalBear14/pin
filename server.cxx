@@ -302,7 +302,8 @@ void Server::msg_relay() {
                     continue;
                 }
 
-                std::cout << "Message recieved from user: " << get_username(i) <<  ", uid: " << users[i].uid << ", Type: " << header.status << "\n";
+                //std::cout << "Message recieved from user: " << get_username(i) <<  ", uid: " << users[i].uid << ", Type: " << header.status << "\n";
+                util::log(header.status, header.user.uid, get_username(i), users[i].cid);
 
                 // Check header
                 switch (header.status) {

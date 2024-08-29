@@ -7,18 +7,27 @@ void util::error(int code, std::string message) {
 
 /* Convert an error code to a string */
 std::string util::error2str(int code) {
-    return std::string("not implemented");
+    // Check if out of bounds
+    if (code < E_NO_SPACE || code >= E_END) {  // No space is the lowest error code
+        // Could be db error
+        if (code == DB_ERR) {
+            return "DB_ERR";
+        }
+
+        return "UNKOWN_ERROR_CODE";
+    }
+
+    return ERROR_DESCRIPTORS[code + 1];
 }
 
 /* Convert a p_header status to string form */
 std::string util::status2str(int status) {
-    // NOT IMPLEMENTED
-    return std::string("not implemented");
-}
+    // Check if out of bounds
+    if (status < STATUS_NULL || status > STATUS_END) {
+        return "UNKOWN_STATUS_CODE";
+    }
 
-/* Log an event to output */
-void util::log(std::streambuf stream, std::string message) {
-
+    return STATUS_DESCRIPTORS[status];
 }
 
 /* Prompt user input and retrieve the result */
@@ -40,4 +49,30 @@ char util::char_exclusion(std::string str) {
     }
 
     return 0;
+}
+
+/* Log an event to a given output without formatting */
+void util::log(std::ostream& stream, std::string& message) {
+    stream << message << "\n";
+}
+
+/* Write just a message to the default output */
+void util::log(std::string& message) {
+    *util::logstream << "| " << message << " |\n";
+}
+
+/* Log a server message (this is magic number hell) */
+void util::log(int status, int uid, std::string uname, int cid) {
+    char buf[1024];  // String to construct our message into
+    std::snprintf(buf, sizeof(buf), "| Message recieved: %-21s | uid: %-2d | Username: %-15s | cid: %-2d |\n", status2str(status).c_str(), uid, uname.c_str(), cid);
+
+    *util::logstream << buf;
+}
+
+/* Log a user event */
+void util::log(int id, std::string& name, std::string& message) {
+    char buf[1024];  // String to construct our message into
+    std::snprintf(buf, sizeof(buf), "| User/convo: %-15s | id: %-2d | Message: %s |\n", name.c_str(), id, message.c_str());
+
+    *util::logstream << buf;
 }

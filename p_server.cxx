@@ -73,10 +73,16 @@ int read_settings(struct server_settings& s) {
 }
 
 /* Main startup and port accept function */
-int main(void) {
+int main(int argc, char** argv) {
     int server_fd, new_socket;
     int opt = 1;
     addrlen = sizeof(address);
+
+    // Check for command line arg
+    if (argc > 1) {
+        std::ofstream f(argv[1]);
+        util::logstream = &f;
+    }
 
     // Read server settings
     struct server_settings settings;
