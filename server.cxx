@@ -69,7 +69,7 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
             
             net::send_header(fd, h);
 
-            printf("Connection denied\n");
+            util::log("Connection denied");
             close(fd);
             continue;
         }
@@ -79,7 +79,7 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
         pollfds[index].fd = fd;
         mut.unlock();
 
-        printf("Connection accepted in slot %d, fd: %d\n", index, pollfds[index].fd);
+        util::log(index, pollfds[index].fd);
     }
 }
 
@@ -120,7 +120,7 @@ int Server::init_connection(int fd, int ix) {
     secure::encrypt(users[ix].dynamic_key, KEYLEN);
     mut.unlock();
 
-    std::cout << "Name recieved: " << str << ", uid: " << users[ix].uid << "\n";
+    util::log(users[ix].uid, get_username(ix), "User connected");
     return E_NONE;
 }
 
@@ -138,6 +138,7 @@ void Server::sendall(int ix, std::string buf) {
     p_header header;
     header.user = users[ix];
     header.status = STATUS_MSG;
+    int err;
 
     mut.lock();
 
@@ -147,8 +148,8 @@ void Server::sendall(int ix, std::string buf) {
     for (int i = 0; i < MAXUSR; i++) {
         if (pollfds[i].fd != -1 && users[i].cid == header.user.cid && i != ix) {
             // Send to socket
-            if (net::send_msg(pollfds[i].fd, header, buf) != E_NONE) {
-                std::cout << "Failed to send on slot: " << ix << "\n";
+            if ((err = net::send_msg(pollfds[i].fd, header, buf)) != E_NONE) {
+                util::error(err, "Failed to send on slot " + ix);
             }
         }
     }
@@ -274,7 +275,7 @@ void Server::msg_relay() {
 
                     mut.unlock();
 
-                    printf("Closed slot: %d\n", i);
+                    util::log("Closed slot: " + i);
                     continue;
                 } else if (ret != E_NONE) {
                     // Reset revents
@@ -298,18 +299,17 @@ void Server::msg_relay() {
 
                     mut.unlock();
 
-                    printf("Closed slot: %d\n", i);
+                    util::log("Closed slot: " + i);
                     continue;
                 }
 
                 //std::cout << "Message recieved from user: " << get_username(i) <<  ", uid: " << users[i].uid << ", Type: " << header.status << "\n";
-                util::log(header.status, header.user.uid, get_username(i), users[i].cid);
+                util::log(header.status, header.user.uid, get_username(i), header.user.cid);
 
                 // Check header
                 switch (header.status) {
                     case STATUS_DB_FETCH:
                         // Dispatch thread to catch client up so we can get back to listening
-                        std::cout << "Sync client " << get_username(i) << " with convo " << header.user.cid << "\n";
                         users[i].cid = header.user.cid;
                         sync_client_convo(database, pollfds[i].fd, header.user);
                         break;
@@ -326,7 +326,7 @@ void Server::msg_relay() {
                         //std::cout << str << "\n";
                         ret = database->write_msg(header.user.cid, header, str);
                         if (ret != E_NONE && ret != DB_NONE) {
-                            std::cout << "Could not write message\n";
+                            util::error(ret, "Could not write message to DB");
                         }
 
                         // Send message to all others
@@ -334,7 +334,6 @@ void Server::msg_relay() {
                         break;
                     
                     case STATUS_DB_SYNC:
-                        std::cout << "sync\n";
                         sync_client_db(database, pollfds[i].fd, header.user);
                         break;
 

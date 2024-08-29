@@ -37,7 +37,7 @@ const std::string ERROR_DESCRIPTORS[] = {
 
 class util {
     public:
-        inline static std::ostream* logstream = &std::cerr;
+        inline static char* logfile = nullptr;
 
         static void error(int code, std::string message);
         static std::string error2str(int code);
@@ -48,6 +48,8 @@ class util {
         // Logging variants
         static void log(std::ostream& stream, std::string& message);   // Custom out
         static void log(std::string& message);   // Any message
+        static void log(const char* message);
         static void log(int status, int uid, std::string uname, int cid);  // Message
-        static void log(int id, std::string& name, std::string& message);  // User event
+        static void log(int id, std::string name, const char* message);  // User event
+        static void log(int slot, int fd);  // Connection accept
 };

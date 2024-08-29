@@ -2,7 +2,7 @@
 
 /* Output error message */
 void util::error(int code, std::string message) {
-    // NOT IMPLEMENTED
+    std::cerr << "{ Error: " << error2str(code) << " | " << message << " |\n";
 }
 
 /* Convert an error code to a string */
@@ -58,21 +58,47 @@ void util::log(std::ostream& stream, std::string& message) {
 
 /* Write just a message to the default output */
 void util::log(std::string& message) {
-    *util::logstream << "| " << message << " |\n";
+    std::ofstream _f;
+    std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
+
+    os << "| " << message << " |\n";
 }
+
+/* Write just a message to the default output (c string) */
+void util::log(const char* message) {
+    std::ofstream _f;
+    std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
+
+    os << "| " << message << " |\n";
+}
+
 
 /* Log a server message (this is magic number hell) */
 void util::log(int status, int uid, std::string uname, int cid) {
+    std::ofstream _f;
+    std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
+
     char buf[1024];  // String to construct our message into
     std::snprintf(buf, sizeof(buf), "| Message recieved: %-21s | uid: %-2d | Username: %-15s | cid: %-2d |\n", status2str(status).c_str(), uid, uname.c_str(), cid);
 
-    *util::logstream << buf;
+    os << buf;
 }
 
 /* Log a user event */
-void util::log(int id, std::string& name, std::string& message) {
-    char buf[1024];  // String to construct our message into
-    std::snprintf(buf, sizeof(buf), "| User/convo: %-15s | id: %-2d | Message: %s |\n", name.c_str(), id, message.c_str());
+void util::log(int id, std::string name, const char* message) {
+    std::ofstream _f;
+    std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
 
-    *util::logstream << buf;
+    char buf[1024];  // String to construct our message into
+    std::snprintf(buf, sizeof(buf), "| User/convo: %-15s | id: %-2d | Message: %s |\n", name.c_str(), id, message);
+
+    os;
+}
+
+/* Connection accept */
+void util::log(int slot, int fd) {
+    std::ofstream _f;
+    std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
+
+    os << "| Connection accepted | Slot: " << slot << " | fd: " << fd << " |\n";
 }

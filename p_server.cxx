@@ -80,17 +80,17 @@ int main(int argc, char** argv) {
 
     // Check for command line arg
     if (argc > 1) {
-        std::ofstream f(argv[1]);
-        util::logstream = &f;
+        util::logfile = argv[1];
     }
 
     // Read server settings
     struct server_settings settings;
     if (read_settings(settings)) {
-        std::cout << "Unable to read config file, using default settings\n";
+        util::log("Unable to read config file, using default settings");
     }
 
-    std::cout << "Starting server...\n";
+    //std::cout << "Starting server...\n";
+    util::log("Starting server...");
 
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
