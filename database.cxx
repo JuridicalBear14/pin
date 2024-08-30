@@ -11,10 +11,12 @@ DB_FS::DB_FS(int id) {
         return;
     } 
 
+    int err;
+
     // Build the database file system (or do nothing if it already exists), then return all indexed dbs
     std::vector<int> databases;
-    if (build_FS(databases) != E_NONE) {
-        std::cout << "Error: failed to build file system, defaulting to none\n";
+    if ((err = build_FS(databases)) != E_NONE) {
+        util::error(err, "Error: failed to build file system, defaulting to none");
         db_id = DB_NONE;
         return;
     }
@@ -22,11 +24,11 @@ DB_FS::DB_FS(int id) {
     if ((id == DB_NEW) || (id == DB_DEFAULT && databases.size() < 1)) {  // Create new
         db_id = build_db();
 
-        if (db_id == DB_NONE) {
-            std::cout << "Unable to create database, defaulting to none\n";
+        if (db_id == DB_ERR) {
+            util::error(db_id, "Unable to create database, defaulting to none");
         }
 
-        std::cout << "Using new database at location: " << db_path << "\n";
+        util::log("Using new database at location: ", db_path);
 
         return;
     }
@@ -36,7 +38,7 @@ DB_FS::DB_FS(int id) {
         db_id = databases.back();
         db_path = "data/pin_db_" + std::to_string(db_id) + "/";
 
-        std::cout << "Using default database: " << db_path << "\n";
+        util::log("Using default database at location: ", db_path);
         return;
     }
 
@@ -46,10 +48,10 @@ DB_FS::DB_FS(int id) {
         db_id = id;
         db_path = "data/pin_db_" + std::to_string(id) + "/";
 
-        std::cout << "Using database at location: " << db_path << "\n";
+        util::log("Using database at location: ", db_path);
     } else {
         // Doesn't exist
-        std::cout << "Unable to find database, defaulting to none\n";
+        util::log("Unable to find database, defaulting to none");
         db_id = DB_NONE;
     }
 }
@@ -93,7 +95,7 @@ int DB_FS::build_db() {
     // Check for error
     if (new_id == DB_NONE) {
         mut.unlock();
-        return DB_NONE;
+        return DB_ERR;
     }
 
     mut.lock();
@@ -104,7 +106,7 @@ int DB_FS::build_db() {
 
     if (ret == -1) {
         mut.unlock();
-        return DB_NONE;
+        return DB_ERR;
     }
 
     // Update index
@@ -181,7 +183,6 @@ int DB_FS::read_file_header(std::string file, int type, int size) {
     f.close();
 
     if (h.type != type || h.version != PIN_VERSION || h.itemsize != size) {
-        std::cout << "err\n";
         return DB_ERR;
     }
 
@@ -235,7 +236,7 @@ int DB_FS::add_user(User user) {
 }
 
 /* Lookup user id by name, if not found and create is true: create new user */
-int DB_FS::get_user_id(User& user, bool create) {
+int DB_FS::get_user_id(User& user, bool newuser) {
     if (db_id == DB_NONE) {
         return DB_NONE;
     }
@@ -280,7 +281,13 @@ int DB_FS::get_user_id(User& user, bool create) {
                 return E_NONE;
             } else {
                 // Right user, bad password
-                return E_DENIED;
+
+                // If they're new, then name conflict, if not, bad password
+                if (newuser) {
+                    return E_CONFLICT;
+                } else {
+                    return E_DENIED;
+                }
             }
         }
 
@@ -289,7 +296,7 @@ int DB_FS::get_user_id(User& user, bool create) {
     }
 
     // Not found, so create or return err
-    if (create) {
+    if (newuser) {
         user.uid = max + 1;
 
         // Generate keys
@@ -304,7 +311,7 @@ int DB_FS::get_user_id(User& user, bool create) {
         return E_NONE;
     }
 
-    return E_GENERIC;
+    return E_NOT_FOUND;
 }
 
 // ****************************** </User functions> ****************************** //

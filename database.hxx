@@ -2,6 +2,7 @@
 
 #include "defn.hxx"
 #include "secure.hxx"
+#include "util.hxx"
 
 #define DATA_DIR "data"
 
@@ -19,7 +20,7 @@ class Database {
         virtual int get_all_messages(int cid, std::vector<std::string>& messages) {return -1;};
         virtual int get_messages(int cid, std::vector<std::string>& messages, int count) {return -1;};
         virtual int get_convo_index(std::vector<Convo>& items, User user) {return -1;};
-        virtual int get_user_id(User& user, bool create) {return -1;};
+        virtual int get_user_id(User& user, bool newuser) {return -1;};
         virtual int create_convo(Convo& c) {return -1;};
 
     protected:
@@ -35,7 +36,7 @@ class DB_FS: public Database {
         int get_all_messages(int cid, std::vector<std::string>& messages);
         int get_messages(int cid, std::vector<std::string>& messages, int count);
         int get_convo_index(std::vector<Convo>& items, User user);
-        int get_user_id(User& user, bool create);
+        int get_user_id(User& user, bool newuser);
         int create_convo(Convo& c);
 
     private:

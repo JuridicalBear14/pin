@@ -68,6 +68,15 @@ int main(int argc, char** argv) {
         std::cerr << "\nConnection Failed \n";
         return -1;
     }
+
+    // Now that we connected, set timeout for sending and recieving
+    /*struct timeval tv;
+    tv.tv_sec = TIMEOUT;
+    tv.tv_usec = 0;
+    if (setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof(tv)) || setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, (const char*) &tv, sizeof(tv))) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }*/
     
     // Now initialize connection
     if (c.init(client_fd) != E_NONE) {

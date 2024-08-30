@@ -28,6 +28,7 @@
 #define MAXMSG 1024    // Max message length
 #define MAX_CONVO_USERS 10  // Max number of users for one convo (other than all)
 #define KEYLEN 6   // Length of a user authentication key
+#define TIMEOUT 3  // Amount of time (in seconds) to wait for a read before timing out
 
 // Exit code stuff for interface and client
 #define EXIT_NONE 0   // Exit program fully
@@ -65,6 +66,8 @@ enum error_code {
     E_TOO_BIG,
     E_GENERIC,
     E_DENIED,
+    E_CONFLICT,
+    E_NOT_FOUND,
 
     E_END   // Final error code
 };

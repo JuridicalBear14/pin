@@ -60,6 +60,15 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
             exit(EXIT_FAILURE);
         }
 
+        // Now that we accepted, set timeout for sending and recieving
+        struct timeval tv;
+        tv.tv_sec = TIMEOUT;
+        tv.tv_usec = 0;
+        if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof(tv)) || setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char*) &tv, sizeof(tv))) {
+            perror("setsockopt");
+            exit(EXIT_FAILURE);
+        }
+
         // If no slots or bad init, send denial header
         if (((index = nextindex()) == E_NO_SPACE) || ((ret = init_connection(fd, index)) != E_NONE)) {
             p_header h;
@@ -69,7 +78,7 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
             
             net::send_header(fd, h);
 
-            util::log("Connection denied");
+            util::log("Connection denied: ", util::error2str(ret));
             close(fd);
             continue;
         }
@@ -96,8 +105,14 @@ int Server::init_connection(int fd, int ix) {
 
     str = std::string(header.user.name);
 
+    bool newuser = false;  // Bool for whether or not our user is new
+
+    if (header.user.dynamic_key[0] == 0) {   // If key is null, then new user
+        newuser = true;
+    }
+
     // Lookup user in db (and create if not found)
-    ret = database->get_user_id(header.user, true);
+    ret = database->get_user_id(header.user, newuser);
 
     if (ret != E_NONE) {   // Validation denied, so deny client
         return ret;
@@ -175,13 +190,14 @@ void Server::connect_db(Database* db) {
 
 /* Catch the client up on the contents of the db */
 void Server::sync_client_db(Database* database, int fd, User user) {
-    std::cout << "Sync user " << user.uid << " with db\n";
+    util::log("Sync user with DB: ", user.uid);
+    int err;
 
     // Get items
     std::vector<Convo> items;
-    if (database->get_convo_index(items, user) != E_NONE) {
+    if ((err = database->get_convo_index(items, user)) != E_NONE) {
         // Error reading, so log and continue with empty list
-        std::cout << "Could not read convo index\n";
+        util::error(err, "Could not read convo index");
     }
 
     p_header header;
@@ -194,25 +210,27 @@ void Server::sync_client_db(Database* database, int fd, User user) {
     if (header.data == 0) {
         header.size = 0;
 
-        if (net::send_header(fd, header) != E_NONE) {
-            std::cout << "Sync failed\n";
+        if ((err = net::send_header(fd, header)) != E_NONE) {
+            util::error(err, "Sync failed");
             return;
         }
     }
 
     // Send all convos
     for (Convo c : items) {
-        if (net::send_msg(fd, header, &c) != E_NONE) {
-            std::cout << "Sync failed\n";
+        if ((err = net::send_msg(fd, header, &c)) != E_NONE) {
+            util::error(err, "Sync failed");
             return;
         }
     }
 
-    std::cout << "Sync complete\n";
+    util::log("Database sync complete for user: ", user.uid);
 }
 
 /* Sync client with contents of convo */
 void Server::sync_client_convo(Database* database, int fd, User user) {
+    int err;
+
     // Get message list
     std::vector<std::string> messages;
     int ret = database->get_all_messages(user.cid, messages);
@@ -231,13 +249,11 @@ void Server::sync_client_convo(Database* database, int fd, User user) {
     for (std::string& s : messages) {
         header.size = s.size();
 
-        if (net::send_msg(fd, header, s) != E_NONE) {
-            std::cout << "Sync failed\n";
+        if ((err = net::send_msg(fd, header, s)) != E_NONE) {
+            util::error(err, "Convo sync failed");
             return;
         }
     }
-
-    std::cout << "Sync complete\n";
 }
 
 // ****************************** </Database connection functions> ************************* //
@@ -275,7 +291,7 @@ void Server::msg_relay() {
 
                     mut.unlock();
 
-                    util::log("Closed slot: " + i);
+                    util::log("Closed slot: ", i);
                     continue;
                 } else if (ret != E_NONE) {
                     // Reset revents
@@ -299,7 +315,7 @@ void Server::msg_relay() {
 
                     mut.unlock();
 
-                    util::log("Closed slot: " + i);
+                    util::log("Closed slot: ", i);
                     continue;
                 }
 

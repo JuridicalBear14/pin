@@ -102,3 +102,19 @@ void util::log(int slot, int fd) {
 
     os << "| Connection accepted | Slot: " << slot << " | fd: " << fd << " |\n";
 }
+
+/* Message and number */
+void util::log(const char* message, int num) {
+    std::ofstream _f;
+    std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
+
+    os << "| " << message << num << " |\n";
+}
+
+/* Message and string */
+void util::log(const char* message, std::string buf) {
+    std::ofstream _f;
+    std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
+
+    os << "| " << message << buf << " |\n";
+}

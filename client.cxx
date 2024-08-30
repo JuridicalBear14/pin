@@ -210,7 +210,6 @@ int Client::build_new_convo(Convo& c) {
 /* Initialize connection to server and authenticate user */
 int Client::init(int fd) {
     client_fd = fd;
-
     int ret;
 
     // Send user struct over
@@ -229,9 +228,20 @@ int Client::init(int fd) {
 
     // Check for denial
     if (header.status == STATUS_CONNECT_DENIED || header.status == STATUS_ERROR) {
-        // If denied for bad key, tell the user
-        if (header.data == E_DENIED) {
-            std::cout << "Access denied: key not accepted\n";
+        // If denied, tell why
+        switch (header.data) {
+            case E_DENIED:   // Bad key
+                std::cout << "Access denied: key not accepted\n";
+                break;
+            case E_CONFLICT:   // Name conflict
+                std::cout << "Access denied: name already taken\n";
+                break;
+            case E_NOT_FOUND:  // Couldn't find user
+                std::cout << "Access denied: user not found\n";
+                break;
+
+            default:
+                std::cout << "Access denied: error\n";
         }
 
         // Not sure what to do here, for now we exit

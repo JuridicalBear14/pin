@@ -8,7 +8,7 @@
 int net::read_msg(int fd, p_header& header, std::string& str) {
     // First read header
     int ret = read(fd, &header, sizeof(p_header));
-    if (ret < sizeof(p_header)) {
+    if (ret < (int) sizeof(p_header)) {
         return E_FAILED_READ;
     }
 
@@ -38,7 +38,7 @@ int net::read_header(int fd, p_header& header) {
 
     if (ret == 0) {
         return E_CONNECTION_CLOSED;
-    } else if (ret < sizeof(p_header)) {
+    } else if (ret < (int) sizeof(p_header)) {
         return E_FAILED_READ;
     }
 
@@ -104,7 +104,7 @@ int net::send_msg(int fd, p_header header, std::string buf) {
     int h_ret = send(fd, &header, sizeof(header), 0);
 
     // Check for success
-    if (h_ret < sizeof(p_header)) {
+    if (h_ret < (int) sizeof(p_header)) {
         return E_FAILED_WRITE;
     }
 
@@ -129,7 +129,7 @@ int net::send_msg(int fd, p_header header, void* buf) {
     int h_ret = send(fd, &header, sizeof(header), 0);
 
     // Check for success
-    if (h_ret < sizeof(p_header)) {
+    if (h_ret < (int) sizeof(p_header)) {
         return E_FAILED_WRITE;
     }
 
@@ -151,7 +151,7 @@ int net::send_msg(int fd, p_header header, void* buf) {
 int net::send_header(int fd, p_header header) {
     int ret = send(fd, &header, sizeof(p_header), 0);
 
-    if (ret < sizeof(p_header)) {
+    if (ret < (int) sizeof(p_header)) {
         return E_FAILED_WRITE;
     }
     

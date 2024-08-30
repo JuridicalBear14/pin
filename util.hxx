@@ -31,6 +31,8 @@ const std::string ERROR_DESCRIPTORS[] = {
     "E_TOO_BIG",
     "E_GENERIC",
     "E_DENIED",
+    "E_CONFLICT",
+    "E_NOT_FOUND",
 
     "E_END"   // Final error code
 };
@@ -52,4 +54,6 @@ class util {
         static void log(int status, int uid, std::string uname, int cid);  // Message
         static void log(int id, std::string name, const char* message);  // User event
         static void log(int slot, int fd);  // Connection accept
+        static void log(const char* message, int num);  // Message and number
+        static void log(const char* message, std::string buf);
 };

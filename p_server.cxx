@@ -65,7 +65,7 @@ int read_settings(struct server_settings& s) {
                 s.port = std::stoi(buf.substr(buf.find(" ") + 1));
             }
         } catch (...) {
-            std::cout << "Error parsing settings file on line (will use default instead):\n" << buf << "\n";
+            util::log("Error parsing settings file on line (will use default instead): ", buf);
         }
     }
 
