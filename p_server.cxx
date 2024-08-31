@@ -46,7 +46,7 @@ int read_settings(struct server_settings& s) {
             continue;
         }
 
-        std::transform(buf.begin(), buf.end(), buf.begin(), ::tolower);
+        util::tolower(buf);
 
         // Otherwise switch case
         set = buf.substr(0, buf.find(' '));   // Grab first word, aka which setting

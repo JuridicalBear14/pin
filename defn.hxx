@@ -19,6 +19,7 @@
 #include <thread>
 #include <algorithm>
 #include <future>
+#include <sstream>
 
 #define PIN_VERSION 1
 
@@ -29,6 +30,10 @@
 #define MAX_CONVO_USERS 10  // Max number of users for one convo (other than all)
 #define KEYLEN 6   // Length of a user authentication key
 #define TIMEOUT 3  // Amount of time (in seconds) to wait for a read before timing out
+
+// Server fd slot states
+#define SERVER_SLOT_EMPTY -1
+#define SERVER_SLOT_CLOSED -2
 
 // Exit code stuff for interface and client
 #define EXIT_NONE 0   // Exit program fully
@@ -49,6 +54,7 @@ enum header_status {
     STATUS_USER_AUTH,   // Authenticating user
     STATUS_USER_DENIED,   // User auth denied
     STATUS_NEW_USER,     // New user request
+    STATUS_DISCONNECT,   // Disconnect user
 
     STATUS_END   // Final status code (for bounding purposes)
 };

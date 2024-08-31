@@ -28,7 +28,7 @@ void Client::user_login(std::string name, std::string key) {
             std::cout << "[N]ew user or [R]eturning user?\n";
             
             std::cin >> s;
-            s = std::tolower(s.c_str()[0]);   // Obnoxious process to lowercase a string
+            util::tolower(s);
         }
 
         // Loop until we get a valid name
@@ -154,7 +154,7 @@ int Client::build_new_convo(Convo& c) {
 
     // Get name from user
     std::cout << "Please enter name for new convo (15 character max, no spaces):\n";
-    std::cin >> buf;
+    std::cin >> buf; std::cin.ignore();
 
     // Shorten to 15 chars (if necessary)
     if (buf.size() > 15) {
@@ -166,7 +166,7 @@ int Client::build_new_convo(Convo& c) {
 
     // Get users for convo
     std::cout << "Please enter up to 9 participant usernames separated by spaces, or an ! for a global chat (all users)\n";
-    std::cin >> buf;
+    std::getline(std::cin, buf);
     buf.append(" ");  // Add a space to make parsing simpler
 
     // Parse out names
@@ -272,7 +272,7 @@ int Client::fetch_convo_options(std::vector<Convo>& v) {
     int ret = send_and_wait(header, NULL, &convo_waiter);
 
     if (ret != E_NONE) {
-        std::cout << "err" << ret << "\n";
+        util::error(ret, "Failed to fetch convo options");
         return 0;
     }
 
@@ -353,7 +353,7 @@ int Client::send_and_wait(p_header header, void* buf, std::condition_variable* w
     }
 
     // Then wait for the socket to recieve every packet
-    convo_waiter.wait(lock);
+    waiter->wait(lock);
     mut.unlock();
     return E_NONE;
 }
@@ -415,6 +415,12 @@ void Client::recieve() {
                 // Notify interface to continue
                 convo_waiter.notify_all();
                 break;
+
+            case STATUS_DISCONNECT:
+                // Server disconnect
+                interface->background();
+                std::cout << "Server disconnected\n";
+                exit(0);
         }
     }
 }

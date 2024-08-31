@@ -25,6 +25,7 @@ class Server {
         void connect_db(Database* database);
 
     private:
+        void disconnect_all(bool toclose);
         int nextindex();
         void sendall(int ix, std::string);
         int init_connection(int fd, int ix);

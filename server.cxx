@@ -9,7 +9,7 @@ Server::Server(int fd) {
     // Set up pollfds
     for (int i = 0; i < MAXUSR; i++) {
         pollfds[i].events = POLLIN;
-        pollfds[i].fd = -1;
+        pollfds[i].fd = SERVER_SLOT_EMPTY;
     }
 }
 
@@ -28,7 +28,7 @@ int Server::nextindex() {
     mut.lock();
 
     for (int i = 0; i < MAXUSR; i++) {
-        if (pollfds[i].fd == -1) {
+        if (pollfds[i].fd == SERVER_SLOT_EMPTY) {
             mut.unlock();
             return i;
         }
@@ -95,15 +95,12 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
 /* Initial connection to client, read their name and then transfer convo history */
 int Server::init_connection(int fd, int ix) {
     // Read name
-    std::string str;
     p_header header;
     int ret;
 
     if ((ret = net::read_header(fd, header)) != E_NONE) {
         return ret;
     }
-
-    str = std::string(header.user.name);
 
     bool newuser = false;  // Bool for whether or not our user is new
 
@@ -164,12 +161,51 @@ void Server::sendall(int ix, std::string buf) {
         if (pollfds[i].fd != -1 && users[i].cid == header.user.cid && i != ix) {
             // Send to socket
             if ((err = net::send_msg(pollfds[i].fd, header, buf)) != E_NONE) {
-                util::error(err, "Failed to send on slot " + ix);
+                util::error(err, "Failed to send on slot " + i);
             }
         }
     }
 
     mut.unlock();
+}
+
+/* Disconnect all current users, can close slot permanently or just disconnect */
+void Server::disconnect_all(bool toclose) {
+    // Construct header
+    p_header header;
+    header.status = STATUS_DISCONNECT;
+    
+    int err;
+    for (int i = 0; i < MAXUSR; i++) {
+        if (pollfds[i].fd != -1) {   // Valid user
+            header.user = users[i];
+
+            // Send to socket
+            if ((err = net::send_header(pollfds[i].fd, header)) != E_NONE) {
+                util::error(err, "Failed to send on slot " + i);
+            }
+
+            mut.lock();
+
+            // Closed
+            close(pollfds[i].fd);
+
+            if (toclose) {
+                pollfds[i].fd = SERVER_SLOT_CLOSED;
+            } else {
+                pollfds[i].fd = SERVER_SLOT_EMPTY;
+            }
+
+            // Wipe user entry
+            users[i].uid = -1;
+            users[i].cid = -1;
+            users[i].name[0] = 0;
+
+            mut.unlock();
+
+            util::log("Closed slot: ", i);
+        }
+    }
 }
 
 // ****************************** </User service functions> ************************* //
@@ -282,7 +318,7 @@ void Server::msg_relay() {
 
                     // Closed
                     close(pollfds[i].fd);
-                    pollfds[i].fd = -1;
+                    pollfds[i].fd = SERVER_SLOT_EMPTY;
 
                     // Wipe user entry
                     users[i].uid = -1;
@@ -306,7 +342,7 @@ void Server::msg_relay() {
 
                     // Closed
                     close(pollfds[i].fd);
-                    pollfds[i].fd = -1;
+                    pollfds[i].fd = SERVER_SLOT_EMPTY;
 
                     // Wipe user entry
                     users[i].uid = -1;

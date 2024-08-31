@@ -15,7 +15,13 @@ void Server_control::start_scontrol() {
 
 /* Shutdown the server */
 void Server_control::shutdown() {
+    // First we disconnect all users
+    util::log("Server shutdown: disconnecting all users...");
+    server->disconnect_all(true);   // True to permanently close slots
 
+    util::log("Disconnect complete, stopping server...");
+
+    exit(0);
 }
 
 // ****************************** </Startup> ************************* //
@@ -24,23 +30,94 @@ void Server_control::shutdown() {
 
 
 
-// MARK: Accessors
-// ****************************** <Accessors> ************************* //
+// MARK: List
+// ****************************** <List> ************************* //
 
 
 
-// ****************************** </Accessors> ************************* //
+// ****************************** </List> ************************* //
 
 
 
 
 
-// MARK: Mutators
-// ****************************** <Mutators> ************************* //
+// MARK: Modify
+// ****************************** <Modify> ************************* //
 
 
 
-// ****************************** </Mutators> ************************* //
+// ****************************** </Modify> ************************* //
+
+
+
+
+
+// MARK: Create
+// ****************************** <Create> ************************* //
+
+/* Manage and call all functions derived from the create command */
+void Server_control::create_manager(std::vector<std::string> tokens) {
+    // First check args
+    if (tokens.size() < 3) {
+        util::error(E_BAD_VALUE, "Too few arguments for \"create\" command");
+        return;
+    }
+    
+    int err;
+
+    // Lookup table (again)
+    if (tokens[1] == "user") {   // Create user
+        err = create_user(tokens[2]);
+
+        if (err != E_NONE) {
+            util::error(err, "Unable to create user");
+            return;
+        }
+
+    } else {   // Uknown
+        util::error(E_BAD_VALUE, "Unknown option for \"create\" command");
+        return;
+    }
+}
+
+/* Create a new user with given username */
+int Server_control::create_user(std::string name) {
+    User user;
+    int err;
+
+    // Copy name over
+    memset(user.name, 0, NAMELEN + 1);
+    strncpy(user.name, name.c_str(), NAMELEN);
+
+    // Now call database to create said user
+    err = server->database->get_user_id(user, true);
+
+    if (err != E_NONE) {
+        return err;
+    }
+
+    // User has been created
+    util::log(user.uid, name, "User has been created");
+
+    // Write keys to console (without logging)
+    std::cout << "| Master key: " << user.master_key << " |\n";
+    std::cout << "| Dynamic key: " << user.dynamic_key << " |\n";
+
+    return E_NONE;
+}
+
+// ****************************** </Create> ************************* //
+
+
+
+
+
+// MARK: Delete
+// ****************************** <Delete> ************************* //
+
+
+
+// ****************************** </Delete> ************************* //
 
 
 
@@ -52,9 +129,33 @@ void Server_control::shutdown() {
 void Server_control::user_loop() {
     // Run until shutdown called
     std::string buf;
+    std::vector<std::string> tokens;
     while (true) {
-        std::cin >> buf;
-        std::cout << buf << "\n";
+        std::getline(std::cin, buf);
+
+        // Log user command
+        util::log("Admin command: ", buf);
+
+        // Obnoxious process to lowercase a string
+        util::tolower(buf);
+
+        // Tokenize into vector
+        tokens = util::tokenize(buf);
+
+        // Big input lookup table
+        if (tokens[0] == "shutdown") {
+            shutdown();
+        } else if (tokens[0] == "list") {
+
+        } else if (tokens[0] == "edit") {
+
+        } else if (tokens[0] == "create") {
+            create_manager(tokens);
+        } else if (tokens[0] == "delete") {
+
+        } else {
+            util::log("Unkown command");
+        }
     }
 }
 

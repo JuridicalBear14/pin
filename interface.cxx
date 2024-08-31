@@ -13,7 +13,7 @@ int Interface::redraw_screen() {
 
     // Clear existing window
     endwin();
-    refresh();
+    //refresh();
 
     // Reset globals
     x = 0;
@@ -31,7 +31,7 @@ void Interface::background() {
 
     // Clear existing window
     endwin();
-    refresh();
+    //refresh();
 
     // Reset cursor since we won't save typed text
     x = 0;

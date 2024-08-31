@@ -2,7 +2,7 @@
 
 /* Output error message */
 void util::error(int code, std::string message) {
-    std::cerr << "{ Error: " << error2str(code) << " | " << message << " |\n";
+    std::cerr << "{ Error: " << error2str(code) << " | " << message << " }\n";
 }
 
 /* Convert an error code to a string */
@@ -51,6 +51,26 @@ char util::char_exclusion(std::string str) {
     return 0;
 }
 
+/* Tokenize an input string based on a delimeter */
+std::vector<std::string> util::tokenize(std::string str) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    
+    std::string buf;
+    while (ss >> buf) {
+        tokens.push_back(buf);
+    }
+
+    return tokens;
+}
+
+/* Convert to lowercase */
+void util::tolower(std::string& buf) {
+    std::transform(buf.begin(), buf.end(), buf.begin(), ::tolower);
+}
+
+
+
 /* Log an event to a given output without formatting */
 void util::log(std::ostream& stream, std::string& message) {
     stream << message << "\n";
@@ -90,9 +110,9 @@ void util::log(int id, std::string name, const char* message) {
     std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
 
     char buf[1024];  // String to construct our message into
-    std::snprintf(buf, sizeof(buf), "| User/convo: %-15s | id: %-2d | Message: %s |\n", name.c_str(), id, message);
+    std::snprintf(buf, sizeof(buf), "| User: %-15s | id: %-2d |  %s |\n", name.c_str(), id, message);
 
-    os;
+    os << buf;
 }
 
 /* Connection accept */
