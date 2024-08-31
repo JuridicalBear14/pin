@@ -56,7 +56,7 @@ void Server::connection_listener(struct sockaddr_in address, int addrlen) {
     while (1) {
         // Accept connection
         if ((fd = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
-            perror("accept");
+            //perror("accept");
             exit(EXIT_FAILURE);
         }
 

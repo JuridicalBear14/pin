@@ -33,12 +33,17 @@ server: $(SERVER) $(DATABASE) $(SERVER_CONTROL) $(SHARED) $(SERVER_HEADERS)
 
 run: both
 	gnome-terminal -- bash -c './server'
-	gnome-terminal -- bash -c './client local $(shell sed -n '1,1 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
-	gnome-terminal -- bash -c './client local $(shell sed -n '2,2 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
+	gnome-terminal -- bash -c './client local client1 $(shell sed -n '1,1 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
+	gnome-terminal -- bash -c './client local client2 $(shell sed -n '2,2 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')'
 
 # Run just one client
 runc: both
-	./client local $(shell sed -n '1,1 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')
+	./client local client1 $(shell sed -n '1,1 p' $(TEST_ACCOUNTS_FILE) | tr -d '\n')
+
+# Register test accounts (relies on exact character lengths for cut, but that's ok)
+register: both
+	printf "create user client1" | ./server | sed -n '1,1 p' | cut -c 15-21 > $(TEST_ACCOUNTS_FILE)
+	printf "create user client2" | ./server | sed -n '1,1 p' | cut -c 15-21 >> $(TEST_ACCOUNTS_FILE)
 
 clean:
 	rm server client

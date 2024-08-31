@@ -130,9 +130,7 @@ void Server_control::user_loop() {
     // Run until shutdown called
     std::string buf;
     std::vector<std::string> tokens;
-    while (true) {
-        std::getline(std::cin, buf);
-
+    while (std::getline(std::cin, buf)) {
         // Log user command
         util::log("Admin command: ", buf);
 

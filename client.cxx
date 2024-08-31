@@ -420,6 +420,8 @@ void Client::recieve() {
                 // Server disconnect
                 interface->background();
                 std::cout << "Server disconnected\n";
+
+                close(client_fd);
                 exit(0);
         }
     }
