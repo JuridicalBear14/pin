@@ -17,6 +17,7 @@ class Client {
         int fetch_convo_options(std::vector<Convo>& v);
         void user_login(std::string name, std::string key);
         std::string getname();
+        Convo getconvo();
 
     private:
         int request_new_convo(Convo c);
@@ -27,6 +28,7 @@ class Client {
         int client_fd;
         std::mutex mut;
         User user;
+        Convo convo;
         
         // Vars to synchronizing convos
         std::vector<Convo> convo_vector;

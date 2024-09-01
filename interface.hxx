@@ -7,6 +7,13 @@
 // UI stuff
 #define TYPEBOX_HEIGHT 2
 #define MSGGAP 0   // Gap between messages
+#define INFO_BAR_HEIGHT 1
+
+// Colors
+#define COLOR_BG 1
+#define COLOR_BORDER 2
+#define COLOR_IBAR 3
+#define COLOR_MSG 4
 
 class Client;
 
@@ -26,8 +33,7 @@ class Interface {
         std::string get_name();
         virtual int create_screen() {return -1;};
         virtual int event_loop(WINDOW* window) {return -1;};
-
-        // Colors
+        virtual void define_colors() {};
 
         Client* parent;
         std::mutex mutex;
@@ -47,6 +53,8 @@ class MessageWindow: public Interface {
         // Overrides
         int event_loop(WINDOW* typebox);
         int create_screen();
+        void define_colors();
+        void draw_info_bar();
 
         WINDOW* create_border(int height, int width, int x, int y);
         void clear_window(WINDOW* win, int height);
@@ -54,6 +62,7 @@ class MessageWindow: public Interface {
         // Windows
         WINDOW* message_box;
         WINDOW* typebox;
+        WINDOW* info_bar;
 
         // Borders
         WINDOW* message_box_border;

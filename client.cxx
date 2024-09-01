@@ -16,6 +16,11 @@ std::string Client::getname() {
     return std::string(user.name);
 }
 
+/* Get name of convo as an std::string */
+Convo Client::getconvo() {
+    return convo;
+}
+
 /* Get user login info from terminal before anything else */
 void Client::user_login(std::string name, std::string key) {
     // First get name
@@ -133,6 +138,7 @@ void Client::interface_handler() {
 
         } else {   // Normal
             user.cid = options[choice - 1].cid;   // Remember to get cid from array since numbers are just for selection
+            convo = options[choice - 1];
         }
 
         int ret = interface->start_interface();
@@ -319,6 +325,7 @@ int Client::request_new_convo(Convo c) {
     // Now transfer to arg vector and clear convo_transfer
     c = convo_vector[0];   // Should only be 1 entry
     convo_vector.clear();
+    convo = c;
 
     mut.unlock();
 

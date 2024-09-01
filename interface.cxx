@@ -59,6 +59,11 @@ int MessageWindow::start_interface() {
     return create_screen();
 }
 
+/* Define ncurses color pairs */
+void MessageWindow::define_colors() {
+    init_pair(COLOR_IBAR, COLOR_BLACK, COLOR_WHITE);
+}
+
 /* Creates a new screen without modifying any underlying data */
 int MessageWindow::create_screen() {
     // Set up gui stuff
@@ -68,10 +73,11 @@ int MessageWindow::create_screen() {
     keypad(stdscr, TRUE);
     start_color();
 
-    // Set up color pairs
+    // Set up colors
+    define_colors();
 
     // Draw main border
-    message_box_border = create_border(LINES - TLINES, COLS, 0, 0);
+    message_box_border = create_border(LINES - TLINES - INFO_BAR_HEIGHT, COLS, 0, 0);
 
     // Draw typebar border
     typebox_border = create_border(TLINES, COLS, 0, LINES - TLINES);
@@ -80,11 +86,12 @@ int MessageWindow::create_screen() {
     TYPEBOX_WIDTH = COLS - 4;   // -4 -> 2 border 2 padding
 
     MESSAGE_BOX_WIDTH = COLS - 4;   // -4 -> 2 border 2 padding
-    MESSAGE_BOX_HEIGHT = LINES - TLINES - 2;  // -2 border
+    MESSAGE_BOX_HEIGHT = LINES - TLINES - 2 - INFO_BAR_HEIGHT;  // -2 border
 
     // Create actual windows inside borders
     message_box = newwin(MESSAGE_BOX_HEIGHT, MESSAGE_BOX_WIDTH, 1, 2);
     typebox = newwin(TYPEBOX_HEIGHT, TYPEBOX_WIDTH, LINES - TLINES + 1, 2);
+    info_bar = newwin(INFO_BAR_HEIGHT, COLS, LINES - TLINES - 1, 0);
 
     // Switch input to typebox
     keypad(typebox, TRUE);
@@ -172,12 +179,37 @@ void MessageWindow::write_to_screen() {
         line -= 1 + MSGGAP;   // Allows for configurable text gap
     }
 
+    // Don't forget to draw info bar
+    draw_info_bar();
+
     wmove(typebox, y, x);
     keypad(typebox, TRUE);
     wrefresh(message_box);
     wrefresh(typebox);
 
     mutex.unlock();
+}
+
+/* Draw the contents of the info bar */
+void MessageWindow::draw_info_bar() {
+    clear_window(info_bar, INFO_BAR_HEIGHT);
+
+    // Build string to write
+    std::stringstream s;
+    Convo c = parent->getconvo();
+
+    s << "  User: " << parent->getname() << " | Convo: " << c.name << " | Global: " << (c.global ? "Yes" : "No");
+    std::string b;
+
+    // First, write a colored line to fill background
+    wattron(info_bar, COLOR_PAIR(COLOR_IBAR));
+    mvwhline(info_bar, 0, 0, ' ', COLS);
+
+    // Now write text
+    mvwaddstr(info_bar, 0, 0, s.str().c_str());
+    wattroff(info_bar, COLOR_PAIR(COLOR_IBAR));
+
+    wrefresh(info_bar);
 }
 
 /* Add message to list */
