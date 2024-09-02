@@ -74,6 +74,13 @@ void Server_control::create_manager(std::vector<std::string> tokens) {
             return;
         }
 
+    } else if (tokens[1] == "convo") {
+        err = create_convo(tokens[2]);
+
+        if (err != E_NONE) {
+            util::error(err, "Unable to create convo");
+            return;
+        }
     } else {   // Uknown
         util::error(E_BAD_VALUE, "Unknown option for \"create\" command");
         return;
@@ -102,6 +109,29 @@ int Server_control::create_user(std::string name) {
     // Write keys to console (without logging)
     std::cout << "| Master key: " << user.master_key << " |\n";
     std::cout << "| Dynamic key: " << user.dynamic_key << " |\n";
+
+    return E_NONE;
+}
+
+/* Create a new convo with given name */
+int Server_control::create_convo(std::string name) {
+    Convo convo;
+    int err;
+
+    // Copy name over
+    memset(convo.name, 0, NAMELEN + 1);
+    strncpy(convo.name, name.c_str(), NAMELEN);
+    convo.global = true;
+
+    // Now call database to create said user
+    err = server->database->create_convo(convo);
+
+    if (err == DB_NONE) {
+        return DB_ERR;
+    }
+
+    // User has been created
+    util::log(convo.cid, name, "Convo has been created");
 
     return E_NONE;
 }

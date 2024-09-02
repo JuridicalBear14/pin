@@ -25,6 +25,7 @@ class Server_control {
 
         void create_manager(std::vector<std::string> tokens);
         int create_user(std::string name);
+        int create_convo(std::string name);
 
         void delete_manager(std::vector<std::string> tokens);
         int delete_user(std::string name);

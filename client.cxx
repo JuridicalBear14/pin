@@ -91,35 +91,28 @@ void Client::user_login(std::string name, std::string key) {
 
 /* Create and manage all interfaces */
 void Client::interface_handler() {
+    int ret;
+    int choice;
+    ScrollableList* cselect = new ScrollableList();
+    cselect->set_parent(this);
+
     // Run until exit code break
     while (true) {
         // First we fetch all convo options
         std::vector<Convo> options;
         int count = fetch_convo_options(options);
 
-        std::cout << "Convo option(s): \n";
-        // Now list options to user
-        for (int i = 1; i <= count; i++) {
-            std::cout << "[" << i << "] " << options[i - 1].name << " | ";
-        }
-        std::cout << "[0] Create New\n";
+        // Now run convo select
+        choice = cselect->start_interface(options);
+        delete cselect;
+        cselect = new ScrollableList();
+        cselect->set_parent(this);
 
-        std::string buf;
-        std::cin >> buf;
-
-        // Check if quit
-        if (buf.length() == 1 && buf[0] == 'q') {
+        if (choice == EXIT_NONE) {
             break;
         }
-
-        char* p;
-        long choice = std::strtol(buf.c_str(), &p, 10);
-
-        // Make sure it didn't fail
-        if (*p || choice < 0 || choice > count) {
-            std::cout << "\nPlease input a valid number\n";
-            continue;
-        } else if (choice == 0) {   // New convo
+        break;
+        if (choice == 0) {   // New convo
             Convo c;
             int ret = build_new_convo(c);
 
@@ -141,7 +134,7 @@ void Client::interface_handler() {
             convo = options[choice - 1];
         }
 
-        int ret = interface->start_interface();
+        ret = interface->start_interface();
 
         if (ret == EXIT_NONE) {
             break;

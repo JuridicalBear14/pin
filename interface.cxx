@@ -349,6 +349,187 @@ int MessageWindow::event_loop(WINDOW* typebox) {
 // MARK: Scrollable List
 // ****************************** <Scrollable list interface implementation> ****************************** //
 
+/* Initial setup */
+int ScrollableList::start_interface(std::vector<Convo> options) {
+    items = options;
+    return create_screen();
+}
 
+/* Define ncurses color pairs */
+void ScrollableList::define_colors() {
+    init_pair(COLOR_IBAR, COLOR_BLACK, COLOR_WHITE);
+}
+
+/* Creates a new screen without modifying any underlying data */
+int ScrollableList::create_screen() {
+    // Set up gui stuff
+    initscr();
+    cbreak();
+    noecho();
+    start_color();
+
+    // Set up colors
+    define_colors();
+
+    // Draw main border
+    list_box_border = create_border(LINES - INFO_BAR_HEIGHT, COLS, 0, INFO_BAR_HEIGHT);
+    wrefresh(list_box_border);
+
+    // Setup window sizes
+    LIST_BOX_WIDTH = COLS - 4;   // -4 -> 2 border 2 padding
+    LIST_BOX_HEIGHT = LINES - 4 - INFO_BAR_HEIGHT;  // -2 border, -2 padding
+
+    // Create actual windows inside borders
+    list_box = newwin(LIST_BOX_HEIGHT, LIST_BOX_WIDTH, 2 + INFO_BAR_HEIGHT, 2);
+    info_bar = newwin(INFO_BAR_HEIGHT, COLS, 0, 0);
+
+    // Hide cursor
+    curs_set(0);
+
+    keypad(list_box, TRUE);
+    wrefresh(list_box);
+
+    // Now we're ready to go
+    active = true;
+
+    // Draw items
+    write_to_screen();
+    
+    // Start event loop
+    int exit_code = event_loop();
+
+    // Show cursor
+    curs_set(1);
+
+    endwin();
+    //refresh();
+
+
+    return exit_code;
+}
+
+/* Clears a window's contents (no mutex b/c called under mutex) */
+void ScrollableList::clear_window(WINDOW* win, int height) {
+    // Create clearing string (C style because leagacy and it works)
+    char blanks[LIST_BOX_WIDTH];
+    sprintf(blanks, "%*c", LIST_BOX_WIDTH, ' ');
+
+    // Clear each line
+    for (int i = 0; i < height; i++) {
+        mvwaddstr(win, i, 0, blanks);   // Clear line
+    }
+
+    wrefresh(win);
+}
+
+/* Create and draw a window */
+WINDOW* ScrollableList::create_border(int height, int width, int x, int y) {
+    WINDOW* temp;
+
+    mutex.lock();
+
+    temp = newwin(height, width, y, x);
+    wborder(temp, '|', '|', '-', '-', '+', '+', '+', '+');
+
+    //wrefresh(temp);
+
+    mutex.unlock();
+
+    return temp;
+}
+
+/* Write all data to screen */
+void ScrollableList::write_to_screen() {
+    // Check if we are ready to write
+    if (!active) {
+        return;
+    }
+
+    mutex.lock();
+    int line = 0;   // Line to add to, starts at btop
+    int total_box_size = LIST_ITEM_HEIGHT + LIST_ITEM_GAP + 2;  // Total size of one item, +2 for border
+
+    // Clear message_box
+    clear_window(list_box, LIST_BOX_HEIGHT);
+
+    for (int i = 0; i < items.size(); i++) {
+        mvwaddstr(list_box, line, 0, items[i].name);
+
+        line += total_box_size;   // Allows for configurable item gap
+    }
+
+    wrefresh(list_box);
+
+    // Don't forget to draw info bar
+    draw_info_bar();
+
+    mutex.unlock();
+}
+
+/* Draw the contents of the info bar */
+void ScrollableList::draw_info_bar() {
+    clear_window(info_bar, INFO_BAR_HEIGHT);
+
+    // Build string to write
+    std::stringstream s;
+
+    s << "  User: " << parent->getname();
+    std::string b;
+
+    // First, write a colored line to fill background
+    wattron(info_bar, COLOR_PAIR(COLOR_IBAR));
+    mvwhline(info_bar, 0, 0, ' ', COLS);
+
+    // Now write text
+    mvwaddstr(info_bar, 0, 0, s.str().c_str());
+    wattroff(info_bar, COLOR_PAIR(COLOR_IBAR));
+
+    wrefresh(info_bar);
+}
+
+/* Main event loop for keys */
+int ScrollableList::event_loop() {
+    int ch;    // int for expanded char set
+
+    // Run until F1 quit key
+    while ((ch = wgetch(list_box)) != KEY_F(1)) {
+        if (isdigit(ch)) {  // If number key, select
+            if ((ch - '0') <= items.size()) {
+                return ch;
+            }
+
+        } else {
+            // Specific special case keys
+            switch(ch) {
+                case 'n':   // New convo
+                    return 0;
+                // Arrow keys
+                case KEY_UP:
+                    display_offset++;
+                    write_to_screen();
+                    break;
+                case KEY_DOWN:
+                    display_offset == 0 ? : display_offset--;
+                    write_to_screen();
+                    break;
+
+                case '\n':   // Enter
+                    return display_offset;
+                    break;
+
+                case KEY_F(2):   // Screen refresh
+                    return redraw_screen();
+                case KEY_RESIZE:   // Screen resize
+                    return redraw_screen();
+                case KEY_F(3):
+                case '\e':   // Escape
+                    // Return control but don't exit the whole program
+                    return EXIT_BG;
+            }
+        }
+    }
+
+    return EXIT_NONE;
+}
 
 // ****************************** </Scrollable list interface implementation> ****************************** //

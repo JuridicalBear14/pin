@@ -8,6 +8,12 @@
 #define TYPEBOX_HEIGHT 2
 #define MSGGAP 0   // Gap between messages
 #define INFO_BAR_HEIGHT 1
+#define LIST_ITEM_HEIGHT 1
+#define LIST_ITEM_GAP 1
+
+// Popup stuff
+#define POPUP_SWITCH 1
+#define POPUP_TBOX 2
 
 // Colors
 #define COLOR_BG 1
@@ -81,10 +87,49 @@ class MessageWindow: public Interface {
         bool active = false;
 };
 
-class ScrollableList: Interface {
+class ScrollableList: public Interface {
+    public:
+        // Overrides
+        int start_interface(std::vector<Convo> options);
+        void write_to_screen();
 
+    private:
+        // Overrides
+        int event_loop();
+        int create_screen();
+        void define_colors();
+        void draw_info_bar();
+
+        WINDOW* create_border(int height, int width, int x, int y);
+        void clear_window(WINDOW* win, int height);
+
+        // Windows
+        WINDOW* list_box;
+        WINDOW* info_bar;
+
+        // Borders
+        WINDOW* list_box_border;
+
+        // Psuedo-constant window sizes
+        int LIST_BOX_HEIGHT;
+        int LIST_BOX_WIDTH;
+
+        // Global vars
+        std::vector<Convo> items;
+        int display_offset = 0;   // Offset for which items are displayed
+        // (ex: 1 -> display all messages except most recent)
+        bool active = false;
 };
  
 class LoginScreen: Interface {
 
+};
+
+class Popup {
+    public:
+        void add_attribute(int type, const char* name);
+
+    private:
+        void build_box();
+        void draw_box();
 };
