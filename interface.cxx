@@ -384,9 +384,14 @@ int ScrollableList::create_screen() {
     info_bar = newwin(INFO_BAR_HEIGHT, COLS, 0, 0);
 
     // Set up pages
-    ITEMS_PER_PAGE = LINES / (LIST_ITEM_GAP + LIST_ITEM_HEIGHT + 1);
+    ITEMS_PER_PAGE = LIST_BOX_HEIGHT / (LIST_ITEM_GAP + LIST_ITEM_HEIGHT);
+    ITEMS_PER_PAGE -= (LIST_BOX_HEIGHT % (LIST_ITEM_GAP + LIST_ITEM_HEIGHT) == 0) ? 1 : 0;   // Ensures we have at least one row of padding for selection border
+    
     TOTAL_PAGES = items.size() / ITEMS_PER_PAGE;
     TOTAL_PAGES += (items.size() % ITEMS_PER_PAGE) > 0 ? 1 : 0;
+
+    page = page >= TOTAL_PAGES ? 0 : page;   // If we resize down, reset page
+    selected = ITEMS_PER_PAGE * page;   // Ensures selection is always on current page after resizing
 
     // Hide cursor
     curs_set(0);
