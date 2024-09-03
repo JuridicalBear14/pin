@@ -45,6 +45,7 @@ class Interface {
         std::mutex mutex;
         int x = 0;   // Cursor positions
         int y = 0;
+        bool active = false;
 };
 
 
@@ -84,7 +85,6 @@ class MessageWindow: public Interface {
         std::vector<std::string> messages;
         int display_offset = 0;   // Offset for which messages are displayed
         // (ex: 1 -> display all messages except most recent)
-        bool active = false;
 };
 
 class ScrollableList: public Interface {
@@ -114,11 +114,13 @@ class ScrollableList: public Interface {
         int LIST_BOX_HEIGHT;
         int LIST_BOX_WIDTH;
 
+        int TOTAL_PAGES = 0;
+        int ITEMS_PER_PAGE = 0;
+
         // Global vars
         std::vector<Convo> items;
-        int display_offset = 0;   // Offset for which items are displayed
-        // (ex: 1 -> display all messages except most recent)
-        bool active = false;
+        int selected = 0;  // Which item we have selected currently
+        int page = 0;   // Which page we're on
 };
  
 class LoginScreen: Interface {

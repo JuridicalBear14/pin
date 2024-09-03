@@ -111,7 +111,7 @@ void Client::interface_handler() {
         if (choice == EXIT_NONE) {
             break;
         }
-        break;
+
         if (choice == 0) {   // New convo
             Convo c;
             int ret = build_new_convo(c);

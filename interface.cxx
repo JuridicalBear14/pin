@@ -383,6 +383,11 @@ int ScrollableList::create_screen() {
     list_box = newwin(LIST_BOX_HEIGHT, LIST_BOX_WIDTH, 2 + INFO_BAR_HEIGHT, 2);
     info_bar = newwin(INFO_BAR_HEIGHT, COLS, 0, 0);
 
+    // Set up pages
+    ITEMS_PER_PAGE = LINES / (LIST_ITEM_GAP + LIST_ITEM_HEIGHT + 1);
+    TOTAL_PAGES = items.size() / ITEMS_PER_PAGE;
+    TOTAL_PAGES += (items.size() % ITEMS_PER_PAGE) > 0 ? 1 : 0;
+
     // Hide cursor
     curs_set(0);
 
@@ -426,14 +431,8 @@ void ScrollableList::clear_window(WINDOW* win, int height) {
 WINDOW* ScrollableList::create_border(int height, int width, int x, int y) {
     WINDOW* temp;
 
-    mutex.lock();
-
     temp = newwin(height, width, y, x);
     wborder(temp, '|', '|', '-', '-', '+', '+', '+', '+');
-
-    //wrefresh(temp);
-
-    mutex.unlock();
 
     return temp;
 }
@@ -445,25 +444,42 @@ void ScrollableList::write_to_screen() {
         return;
     }
 
-    mutex.lock();
-    int line = 0;   // Line to add to, starts at btop
-    int total_box_size = LIST_ITEM_HEIGHT + LIST_ITEM_GAP + 2;  // Total size of one item, +2 for border
+    int line = 1;   // Line to add to, starts at btop
+    int inum = ITEMS_PER_PAGE * page;  // Which item number we're on
+    int total_box_size = LIST_ITEM_HEIGHT + LIST_ITEM_GAP;  // Total size of one item, +2 for border
 
     // Clear message_box
     clear_window(list_box, LIST_BOX_HEIGHT);
 
-    for (int i = 0; i < items.size(); i++) {
-        mvwaddstr(list_box, line, 0, items[i].name);
+    // Construct top and bottom box borders
+    char borders[LIST_BOX_WIDTH + 1];
+    memset(borders + 1, '~', LIST_BOX_WIDTH - 1);
+    borders[0] = '+'; borders[LIST_BOX_WIDTH - 1] = '+'; borders[LIST_BOX_WIDTH] = 0;
 
+    char str[1024];
+    for (int i = 0; (inum < items.size()) && (i < ITEMS_PER_PAGE); i++) {
+        memset(str, 0, 1024);
+
+        // If selected: box, otherwise plain
+        if (inum == selected) {
+            snprintf(str, 1024, "| %-*s |", LIST_BOX_WIDTH - 4, items[inum].name);
+
+            mvwaddstr(list_box, line - 1, 0, borders);
+            mvwaddstr(list_box, line, 0, str);
+            mvwaddstr(list_box, line + 1, 0, borders);
+        } else {
+            snprintf(str, 1024, "[%d] %s", i + 1, items[inum].name);
+            mvwaddstr(list_box, line, 0, str);
+        }
+        
         line += total_box_size;   // Allows for configurable item gap
+        inum++;
     }
 
     wrefresh(list_box);
 
     // Don't forget to draw info bar
     draw_info_bar();
-
-    mutex.unlock();
 }
 
 /* Draw the contents of the info bar */
@@ -473,7 +489,7 @@ void ScrollableList::draw_info_bar() {
     // Build string to write
     std::stringstream s;
 
-    s << "  User: " << parent->getname();
+    s << "  User: " << parent->getname() << " | Page: " << page + 1 << " of " << TOTAL_PAGES << " | Press 0 for new convo";
     std::string b;
 
     // First, write a colored line to fill background
@@ -495,7 +511,7 @@ int ScrollableList::event_loop() {
     while ((ch = wgetch(list_box)) != KEY_F(1)) {
         if (isdigit(ch)) {  // If number key, select
             if ((ch - '0') <= items.size()) {
-                return ch;
+                return (ch - '0') + (ITEMS_PER_PAGE * page);
             }
 
         } else {
@@ -505,16 +521,20 @@ int ScrollableList::event_loop() {
                     return 0;
                 // Arrow keys
                 case KEY_UP:
-                    display_offset++;
+                    selected == 0 ? : selected--;
+                    selected % ITEMS_PER_PAGE == ITEMS_PER_PAGE - 1 ? page = selected / ITEMS_PER_PAGE : selected;
+
                     write_to_screen();
                     break;
                 case KEY_DOWN:
-                    display_offset == 0 ? : display_offset--;
+                    selected < items.size() - 1 ? selected++ : selected;
+
+                    selected % ITEMS_PER_PAGE == 0 ? page = selected / ITEMS_PER_PAGE : selected;
                     write_to_screen();
                     break;
 
                 case '\n':   // Enter
-                    return display_offset;
+                    return selected + 1;
                     break;
 
                 case KEY_F(2):   // Screen refresh
@@ -524,7 +544,7 @@ int ScrollableList::event_loop() {
                 case KEY_F(3):
                 case '\e':   // Escape
                     // Return control but don't exit the whole program
-                    return EXIT_BG;
+                    return EXIT_NONE;
             }
         }
     }
