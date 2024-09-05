@@ -18,6 +18,7 @@ class Client {
         void user_login(std::string name, std::string key);
         std::string getname();
         Convo getconvo();
+        std::string getkey();
 
     private:
         int request_new_convo(Convo c);

@@ -21,6 +21,8 @@
 #define COLOR_IBAR 3
 #define COLOR_MSG 4
 
+#define CONTROLS "[F1] Quit | [F2] Refresh | [F3] Return"    // User controls (to put in info bar)
+
 class Client;
 
 /*
@@ -52,16 +54,17 @@ class Interface {
 class MessageWindow: public Interface {
     public:
         // Overrides
-        int start_interface();
+        virtual int start_interface();
         void write_to_screen();
         void update_data(std::string buf, int type);
 
-    private:
+    protected:
         // Overrides
         int event_loop(WINDOW* typebox);
         int create_screen();
         void define_colors();
-        void draw_info_bar();
+        virtual void draw_info_bar();
+        virtual int send_message(std::string buffer);
 
         WINDOW* create_border(int height, int width, int x, int y);
         void clear_window(WINDOW* win, int height);
@@ -85,6 +88,7 @@ class MessageWindow: public Interface {
         std::vector<std::string> messages;
         int display_offset = 0;   // Offset for which messages are displayed
         // (ex: 1 -> display all messages except most recent)
+        bool running = true;   // Trigger to instantly stop the main even loop
 };
 
 class ScrollableList: public Interface {
@@ -127,11 +131,16 @@ class LoginScreen: Interface {
 
 };
 
-class Popup {
+class InputWindow : public MessageWindow {
     public:
-        void add_attribute(int type, const char* name);
+        // Overrides
+        int start_interface(std::vector<std::string> prompts, std::vector<std::string>& responses);
 
     private:
-        void build_box();
-        void draw_box();
+        int send_message(std::string buffer);
+        void draw_info_bar();
+
+        // Global vars
+        std::vector<std::string> prompts;
+        std::vector<std::string> responses;
 };

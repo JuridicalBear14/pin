@@ -36,8 +36,10 @@
 #define SERVER_SLOT_CLOSED -2
 
 // Exit code stuff for interface and client
-#define EXIT_NONE -1   // Exit program fully
+#define EXIT_FULL -1   // Exit program fully
 #define EXIT_BG -2   // Put this interface in the background on exit
+#define EXIT_COMPLETE -3  // Exit from completed task (for sub-interfaces)
+#define EXIT_ERROR -4   // Exited with some kind of error
 
 // Header status codes
 enum header_status {

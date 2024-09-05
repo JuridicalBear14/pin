@@ -111,9 +111,12 @@ int MessageWindow::create_screen() {
         parent->request_convo(s);
     }
 
+    // Don't forget to draw info bar
+    draw_info_bar();
+
     // Draw any messages
     write_to_screen();
-    
+
     // Start event loop
     int exit_code = event_loop(typebox);
 
@@ -179,9 +182,6 @@ void MessageWindow::write_to_screen() {
         line -= 1 + MSGGAP;   // Allows for configurable text gap
     }
 
-    // Don't forget to draw info bar
-    draw_info_bar();
-
     wmove(typebox, y, x);
     keypad(typebox, TRUE);
     wrefresh(message_box);
@@ -198,7 +198,7 @@ void MessageWindow::draw_info_bar() {
     std::stringstream s;
     Convo c = parent->getconvo();
 
-    s << "  User: " << parent->getname() << " | Convo: " << c.name << " | Global: " << (c.global ? "Yes" : "No");
+    s << "  User: " << parent->getname() << " | Convo: " << c.name << " | Global: " << (c.global ? "Yes" : "No") << " | " << CONTROLS;
     std::string b;
 
     // First, write a colored line to fill background
@@ -240,6 +240,12 @@ void MessageWindow::update_data(std::string buf, int type) {
     mutex.unlock();
 }
 
+/* Send a message to the parent (to be sent sent to the server) */
+int MessageWindow::send_message(std::string buffer) {
+    update_data(buffer, STATUS_NULL);
+    return parent->send_message(STATUS_MSG, buffer);
+}
+
 /* Main event loop for keys */
 int MessageWindow::event_loop(WINDOW* typebox) {
     // A couple quick constants (not const bc screen resizing)
@@ -257,7 +263,7 @@ int MessageWindow::event_loop(WINDOW* typebox) {
     wrefresh(typebox);
 
     // Run until F1 quit key
-    while ((ch = wgetch(typebox)) != KEY_F(1)) {
+    while (running && ((ch = wgetch(typebox)) != KEY_F(1))) {
         if (isprint(ch)) {  // If regular key, just write
             if (x < XMAX) {
                 waddch(typebox, ch);
@@ -305,11 +311,10 @@ int MessageWindow::event_loop(WINDOW* typebox) {
                 case '\n':   // Enter
                     // If not empty, add
                     if (buffer.length() > 0) {
-                        if (parent->send_message(STATUS_MSG, buffer) != E_NONE) {
+                        if (send_message(buffer) != E_NONE) {
                             break;
                         }
 
-                        update_data(buffer, STATUS_NULL);
                         write_to_screen();
 
                         mutex.lock();
@@ -328,7 +333,7 @@ int MessageWindow::event_loop(WINDOW* typebox) {
                 case KEY_F(3):
                 case '\e':   // Escape
                     // Return control but don't exit the whole program
-                    return EXIT_BG;
+                    return EXIT_COMPLETE;
             }
         }
 
@@ -337,7 +342,7 @@ int MessageWindow::event_loop(WINDOW* typebox) {
         wrefresh(typebox);
     }
 
-    return EXIT_NONE;
+    return running ? EXIT_FULL : EXIT_COMPLETE;
 }
 
 // ****************************** </Message box interface implementation> ****************************** //
@@ -494,7 +499,7 @@ void ScrollableList::draw_info_bar() {
     // Build string to write
     std::stringstream s;
 
-    s << "  User: " << parent->getname() << " | Page: " << page + 1 << " of " << TOTAL_PAGES << " | Press 0 for new convo";
+    s << "  User: " << parent->getname() << " | Key: " << parent->getkey() << " | Page: " << page + 1 << " of " << TOTAL_PAGES << " | Press 0 for new convo | " << CONTROLS;
     std::string b;
 
     // First, write a colored line to fill background
@@ -549,12 +554,74 @@ int ScrollableList::event_loop() {
                 case KEY_F(3):
                 case '\e':   // Escape
                     // Return control but don't exit the whole program
-                    return EXIT_NONE;
+                    return EXIT_FULL;
             }
         }
     }
 
-    return EXIT_NONE;
+    return EXIT_FULL;
 }
 
 // ****************************** </Scrollable list interface implementation> ****************************** //
+
+
+
+
+
+// MARK: Input Window
+// ****************************** <Input window implementation> ****************************** //
+
+/* Start the interface */
+int InputWindow::start_interface(std::vector<std::string> prompts_initial, std::vector<std::string>& responses_final) {
+    if (prompts_initial.size() < 1) {
+        return E_BAD_VALUE;
+    }
+
+    prompts = prompts_initial;
+
+    // Insert first prompt
+    messages.push_back(prompts[0]);
+
+    int ret = create_screen();
+
+    // Set return val to collected responses
+    responses_final = responses;
+
+    return ret;
+}
+
+/* Draw info bar override to be more accurate */
+void InputWindow::draw_info_bar() {
+    clear_window(info_bar, INFO_BAR_HEIGHT);
+
+    // First, write a colored line to fill background
+    wattron(info_bar, COLOR_PAIR(COLOR_IBAR));
+    mvwhline(info_bar, 0, 0, ' ', COLS);
+
+    // Now write text
+    mvwaddstr(info_bar, 0, 0, "  Creating new convo | Press [F3] to exit and save these users (adding no users will result in a global convo)");
+    wattroff(info_bar, COLOR_PAIR(COLOR_IBAR));
+
+    wrefresh(info_bar);
+}
+
+/* Message send rewrite (to instead save the value) */
+int InputWindow::send_message(std::string buffer) {
+    // First save the buffer
+    responses.push_back(buffer);
+
+    // If we got all the responses, exit
+    if (responses.size() >= prompts.size()) {
+        running = false;
+        return E_NONE;
+    }
+
+    update_data(buffer, STATUS_NULL);
+
+    // Otherwise, insert next prompt and continue
+    update_data(prompts[responses.size()], STATUS_MSG);
+
+    return E_NONE;
+}
+
+// ****************************** </Input window implementation> ****************************** //

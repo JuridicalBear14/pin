@@ -21,6 +21,11 @@ Convo Client::getconvo() {
     return convo;
 }
 
+/* Get the current dynamic key */
+std::string Client::getkey() {
+    return std::string(user.dynamic_key);
+}
+
 /* Get user login info from terminal before anything else */
 void Client::user_login(std::string name, std::string key) {
     // First get name
@@ -101,6 +106,7 @@ void Client::interface_handler() {
         // First we fetch all convo options
         std::vector<Convo> options;
         int count = fetch_convo_options(options);
+        user.cid = -1;
 
         // Now run convo select
         choice = cselect->start_interface(options);
@@ -108,7 +114,7 @@ void Client::interface_handler() {
         cselect = new ScrollableList();
         cselect->set_parent(this);
 
-        if (choice == EXIT_NONE) {
+        if (choice == EXIT_FULL) {
             break;
         }
 
@@ -117,15 +123,17 @@ void Client::interface_handler() {
             int ret = build_new_convo(c);
 
             // Check for quit
-            if (ret != E_NONE) {
+            if (ret == EXIT_FULL) {
                 break;
+            } else if (ret == EXIT_ERROR) {
+                // Not created correctly, so just continue
+                continue;
             }
             
             // Now request a new convo with this struct
             user.cid = request_new_convo(c);
             
             if (user.cid == E_NO_SPACE) {
-                std::cout << "Failed to create new convo\n";
                 continue;
             }
 
@@ -136,7 +144,7 @@ void Client::interface_handler() {
 
         ret = interface->start_interface();
 
-        if (ret == EXIT_NONE) {
+        if (ret == EXIT_FULL) {
             break;
         }
 
@@ -149,52 +157,47 @@ void Client::interface_handler() {
 
 /* Build a convo from user options, return -1 for quit */
 int Client::build_new_convo(Convo& c) {
-    std::string buf;
+    std::vector<std::string> prompts = {"Please input convo name (no more than 15 characters)"};
+    std::stringstream s;
 
-    // Get name from user
-    std::cout << "Please enter name for new convo (15 character max, no spaces):\n";
-    std::cin >> buf; std::cin.ignore();
-
-    // Shorten to 15 chars (if necessary)
-    if (buf.size() > 15) {
-        buf.substr(0, 14);
+    // Loop to add user name prompts
+    for (int i = 9; i > 0; i--) {
+        s << "Please input user names (" << i << " remaining)";
+        prompts.push_back(s.str());
+        s.str("");
     }
 
-    strncpy(c.name, buf.c_str(), NAMELEN);
-    c.name[NAMELEN] = 0;   // Make sure null at the end
+    std::vector<std::string> responses;
+    InputWindow intf;
+    intf.set_parent(this);
 
-    // Get users for convo
-    std::cout << "Please enter up to 9 participant usernames separated by spaces, or an ! for a global chat (all users)\n";
-    std::getline(std::cin, buf);
-    buf.append(" ");  // Add a space to make parsing simpler
+    int ret = intf.start_interface(prompts, responses);
 
-    // Parse out names
-    if (buf[0] == '!') {   // Blank input, so global
-        c.global = true;
-    } else {   // Some input
+    // If full exit, then exit
+    if (ret == EXIT_FULL) {
+        return ret;
+    } else if (responses.size() < 1) {
+        return EXIT_ERROR;
+    }
+
+    // Set name
+    memset(c.name, 0, NAMELEN + 1);  // +1 for null byte
+    strncpy(c.name, responses[0].c_str(), NAMELEN);
+    c.global = true;
+    responses.erase(responses.begin());   // Delete used name to make next loop easier
+
+    // Add self to users
+    memset(c.users[0], 0, NAMELEN + 1);  // +1 for null byte
+    strncpy(c.users[0], user.name, NAMELEN);
+
+    int i = 1;
+    for (std::string s : responses) {
+        memset(c.users[i], 0, NAMELEN + 1);
+        strncpy(c.users[i++], s.c_str(), NAMELEN);
         c.global = false;
-
-        // First add ourselves to the list
-        strncpy(c.users[0], user.name, NAMELEN);
-        c.users[0][NAMELEN] = 0;   // Ensure 0
-
-        // Loop and pull out names
-        std::string name;
-        for (int i = 1; i < MAX_CONVO_USERS; i++) {
-            if (buf.length() < 1) {
-                break;
-            }
-
-            name = buf.substr(0, buf.find(" "));
-            buf.erase(0, buf.find(" ") + 1);
-
-            strncpy(c.users[i], name.c_str(), NAMELEN);
-            c.users[i][NAMELEN] = 0;   // Ensure 0
-        }
     }
 
-    c.cid = -1;
-    return E_NONE;
+    return EXIT_COMPLETE;
 }
 
 // ****************************** </Interface handler functions> ****************************** //
@@ -285,6 +288,10 @@ int Client::fetch_convo_options(std::vector<Convo>& v) {
 
 /* Request a convo's data from server */
 int Client::request_convo(std::vector<std::string>& str) {
+    if (user.cid == -1) {
+        return E_BAD_VALUE;
+    }
+
     // Send request to server
     p_header req;
     req.user = user;
