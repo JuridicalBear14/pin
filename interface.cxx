@@ -56,6 +56,12 @@ std::string Interface::get_name() {
 
 /* Initial setup */
 int MessageWindow::start_interface() {
+    // Reset global vars in case it's being reused
+    messages.clear();
+    x = 0;
+    y = 0;
+    display_offset = 0;
+
     return create_screen();
 }
 
@@ -121,7 +127,6 @@ int MessageWindow::create_screen() {
     int exit_code = event_loop(typebox);
 
     endwin();
-    //refresh();
 
     // Reset cursor since we won't save typed text
     x = 0;
@@ -263,7 +268,7 @@ int MessageWindow::event_loop(WINDOW* typebox) {
     wrefresh(typebox);
 
     // Run until F1 quit key
-    while (running && ((ch = wgetch(typebox)) != KEY_F(1))) {
+    while (active && ((ch = wgetch(typebox)) != KEY_F(1))) {
         if (isprint(ch)) {  // If regular key, just write
             if (x < XMAX) {
                 waddch(typebox, ch);
@@ -342,7 +347,7 @@ int MessageWindow::event_loop(WINDOW* typebox) {
         wrefresh(typebox);
     }
 
-    return running ? EXIT_FULL : EXIT_COMPLETE;
+    return active ? EXIT_FULL : EXIT_COMPLETE;
 }
 
 // ****************************** </Message box interface implementation> ****************************** //
@@ -357,6 +362,11 @@ int MessageWindow::event_loop(WINDOW* typebox) {
 /* Initial setup */
 int ScrollableList::start_interface(std::vector<Convo> options) {
     items = options;
+
+    // Make sure these are 0 on every run
+    selected = 0;
+    page = 0;
+
     return create_screen();
 }
 
@@ -543,6 +553,16 @@ int ScrollableList::event_loop() {
                     write_to_screen();
                     break;
 
+                case KEY_PPAGE:
+                    (page <= 0) ? : selected = (--page) * ITEMS_PER_PAGE;
+                    write_to_screen();
+                    break;
+
+                case KEY_NPAGE:
+                    (page >= TOTAL_PAGES - 1) ? : selected = (++page) * ITEMS_PER_PAGE;
+                    write_to_screen();
+                    break;
+
                 case '\n':   // Enter
                     return selected + 1;
                     break;
@@ -607,12 +627,21 @@ void InputWindow::draw_info_bar() {
 
 /* Message send rewrite (to instead save the value) */
 int InputWindow::send_message(std::string buffer) {
-    // First save the buffer
+    // First check if the buffer is valid
+    char c;
+    if ((c = util::char_exclusion(buffer)) != 0) {
+        update_data("Error, invalid character: " + std::string(&c), STATUS_MSG);
+        update_data(prompts[responses.size()], STATUS_MSG);
+
+        return E_NONE;
+    }
+    
+    // Save the buffer
     responses.push_back(buffer);
 
     // If we got all the responses, exit
     if (responses.size() >= prompts.size()) {
-        running = false;
+        active = false;
         return E_NONE;
     }
 

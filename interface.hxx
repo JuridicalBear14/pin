@@ -26,7 +26,7 @@
 class Client;
 
 /*
- * Abstract user interface class
+ * Abstract user interface class, contains basic traits common between all interfaces. Everything derives from this
 */
 class Interface {
     public:
@@ -50,7 +50,9 @@ class Interface {
         bool active = false;
 };
 
-
+/*
+ * The message window is the core of pin, this is the standard interface for actually messaging.
+*/
 class MessageWindow: public Interface {
     public:
         // Overrides
@@ -88,9 +90,12 @@ class MessageWindow: public Interface {
         std::vector<std::string> messages;
         int display_offset = 0;   // Offset for which messages are displayed
         // (ex: 1 -> display all messages except most recent)
-        bool running = true;   // Trigger to instantly stop the main even loop
 };
 
+
+/*
+ * A scrollable list of items, tailored to display convo selection options.
+*/
 class ScrollableList: public Interface {
     public:
         // Overrides
@@ -126,11 +131,11 @@ class ScrollableList: public Interface {
         int selected = 0;  // Which item we have selected currently
         int page = 0;   // Which page we're on
 };
- 
-class LoginScreen: Interface {
 
-};
 
+/*
+ * The input method for new convo creation, hacked together from MessageWindow. It overrides a few functions to change the behaviour to a user-prompt system
+*/
 class InputWindow : public MessageWindow {
     public:
         // Overrides

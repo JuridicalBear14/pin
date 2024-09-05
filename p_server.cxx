@@ -1,6 +1,6 @@
 #include "server.hxx"
 
-// Yes, I am extremely lazy
+// No, you're lazy
 struct sockaddr_in address;
 int addrlen;
 
@@ -74,6 +74,9 @@ int read_settings(struct server_settings& s) {
 
 /* Main startup and port accept function */
 int main(int argc, char** argv) {
+    // Set SIGPIPE to ignore, that way we don't crash froma broken connection
+    signal(SIGPIPE, SIG_IGN);
+
     int server_fd, new_socket;
     int opt = 1;
     addrlen = sizeof(address);

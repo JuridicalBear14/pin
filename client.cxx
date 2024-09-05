@@ -94,25 +94,29 @@ void Client::user_login(std::string name, std::string key) {
 // MARK: Intf. Handler
 // ****************************** <Interface handler functions> ****************************** //
 
-/* Create and manage all interfaces */
+/* Create and manage interfaces */
 void Client::interface_handler() {
     int ret;
     int choice;
+    std::vector<Convo> options;   // Options for convo select
+
+    // Main menu interface
     ScrollableList* cselect = new ScrollableList();
     cselect->set_parent(this);
 
+    // Individual convo interface
+    interface = new MessageWindow();
+    interface->set_parent(this);
+    
     // Run until exit code break
     while (true) {
         // First we fetch all convo options
-        std::vector<Convo> options;
+        options.clear();
         int count = fetch_convo_options(options);
         user.cid = -1;
 
         // Now run convo select
         choice = cselect->start_interface(options);
-        delete cselect;
-        cselect = new ScrollableList();
-        cselect->set_parent(this);
 
         if (choice == EXIT_FULL) {
             break;
@@ -147,12 +151,11 @@ void Client::interface_handler() {
         if (ret == EXIT_FULL) {
             break;
         }
-
-        // Just for testing build new interface each time
-        delete interface;
-        interface = new MessageWindow();
-        interface->set_parent(this);
     }
+
+    // Clean up interfaces
+    delete cselect;
+    delete interface;
 }
 
 /* Build a convo from user options, return -1 for quit */

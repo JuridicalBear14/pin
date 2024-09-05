@@ -6,6 +6,10 @@
 
 class Interface;
 
+
+/*
+ * Core client class, handles all interaction with the server and manages the interfaces.
+*/
 class Client {
     public:
         Client();
