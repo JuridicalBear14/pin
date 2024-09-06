@@ -18,20 +18,21 @@ class Server_control {
 
         // Managers
         void list_manager(std::vector<std::string> tokens);
-        int list_users();
+        void list_users();
 
         void edit_manager(std::vector<std::string> tokens);
 
 
         void create_manager(std::vector<std::string> tokens);
         int create_user(std::string name);
-        int create_convo(std::string name);
+        int create_convo(std::vector<std::string> tokens);
 
         void delete_manager(std::vector<std::string> tokens);
-        int delete_user(std::string name);
-        int delete_user(int uid);
+        void delete_user(std::string name);
+        void delete_user(int uid);
 
         void shutdown();
+        void disconnect();
 
         Server* server;
 };

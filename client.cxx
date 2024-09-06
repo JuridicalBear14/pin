@@ -124,6 +124,8 @@ void Client::interface_handler() {
 
         if (choice == 0) {   // New convo
             Convo c;
+            memset(&c, 0, sizeof(c));
+
             int ret = build_new_convo(c);
 
             // Check for quit

@@ -530,6 +530,11 @@ int ScrollableList::event_loop() {
     // Run until F1 quit key
     while ((ch = wgetch(list_box)) != KEY_F(1)) {
         if (isdigit(ch)) {  // If number key, select
+            // If 0 always return 0
+            if (ch == '0') {
+                return 0;
+            }
+
             if ((ch - '0') <= items.size()) {
                 return (ch - '0') + (ITEMS_PER_PAGE * page);
             }
@@ -630,7 +635,7 @@ int InputWindow::send_message(std::string buffer) {
     // First check if the buffer is valid
     char c;
     if ((c = util::char_exclusion(buffer)) != 0) {
-        update_data("Error, invalid character: " + std::string(&c), STATUS_MSG);
+        update_data(std::string("Error, invalid character: ") + c, STATUS_MSG);
         update_data(prompts[responses.size()], STATUS_MSG);
 
         return E_NONE;

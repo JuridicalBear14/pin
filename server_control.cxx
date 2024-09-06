@@ -1,7 +1,7 @@
 #include "server_control.hxx"
 
-// MARK: Startup
-// ****************************** <Startup> ************************* //
+// MARK: Base
+// ****************************** <Base commands> ************************* //
 
 Server_control::Server_control(Server* s) {
     server = s;
@@ -24,7 +24,12 @@ void Server_control::shutdown() {
     exit(0);
 }
 
-// ****************************** </Startup> ************************* //
+/* Disconnect user(s) */
+void Server_control::disconnect() {
+    server->disconnect_all(false);   // False b/c we don't want to permanently close those slots
+}
+
+// ****************************** </Base commands> ************************* //
 
 
 
@@ -65,6 +70,13 @@ void Server_control::create_manager(std::vector<std::string> tokens) {
     
     int err;
 
+    // Check that the name (token 2) is valid
+    char c;
+    if ((c = util::char_exclusion(tokens[2])) != 0) {
+        util::error(E_BAD_VALUE, std::string("Invalid character for name: ") + c);
+        return;
+    }
+
     // Lookup table (again)
     if (tokens[1] == "user") {   // Create user
         err = create_user(tokens[2]);
@@ -75,7 +87,7 @@ void Server_control::create_manager(std::vector<std::string> tokens) {
         }
 
     } else if (tokens[1] == "convo") {
-        err = create_convo(tokens[2]);
+        err = create_convo(tokens);
 
         if (err != E_NONE) {
             util::error(err, "Unable to create convo");
@@ -114,16 +126,32 @@ int Server_control::create_user(std::string name) {
 }
 
 /* Create a new convo with given name */
-int Server_control::create_convo(std::string name) {
+int Server_control::create_convo(std::vector<std::string> tokens) {
     Convo convo;
+    memset(&convo, 0, sizeof(convo));
     int err;
 
+    std::vector<std::string> users(tokens.begin() + 3, tokens.end());  // Extract user compnent to make it easier later
+
     // Copy name over
-    memset(convo.name, 0, NAMELEN + 1);
-    strncpy(convo.name, name.c_str(), NAMELEN);
+    strncpy(convo.name, tokens[2].c_str(), NAMELEN);
     convo.global = true;
 
-    // Now call database to create said user
+    // Copy user names (if provided)
+    int i = 0;
+    char c;
+    for (std::string s : users) {
+        // Check for invalid characters
+        if ((c = util::char_exclusion(s)) != 0) {
+            util::error(E_BAD_VALUE, std::string("Invalid character for name: ") + c);
+            continue;
+        }
+
+        strncpy(convo.users[i++], s.c_str(), NAMELEN);
+        convo.global = false;
+    }
+
+    // Now call database to create said convo
     err = server->database->create_convo(convo);
 
     if (err == DB_NONE) {
@@ -131,7 +159,7 @@ int Server_control::create_convo(std::string name) {
     }
 
     // User has been created
-    util::log(convo.cid, name, "Convo has been created");
+    util::log(convo.cid, tokens[2], "Convo has been created");
 
     return E_NONE;
 }
@@ -161,10 +189,13 @@ void Server_control::user_loop() {
     std::string buf;
     std::vector<std::string> tokens;
     while (std::getline(std::cin, buf)) {
+        // Check for blank enter
+        if (buf.size() == 0) {
+            continue;
+        }
+
         // Log user command
         util::log("Admin command: ", buf);
-
-        // Obnoxious process to lowercase a string
         util::tolower(buf);
 
         // Tokenize into vector
@@ -173,6 +204,8 @@ void Server_control::user_loop() {
         // Big input lookup table
         if (tokens[0] == "shutdown") {
             shutdown();
+        } else if (tokens[0] == "disconnect") {
+            disconnect();
         } else if (tokens[0] == "list") {
 
         } else if (tokens[0] == "edit") {

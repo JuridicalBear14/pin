@@ -30,11 +30,6 @@ std::string util::status2str(int status) {
     return STATUS_DESCRIPTORS[status];
 }
 
-/* Prompt user input and retrieve the result */
-void util::prompt(std::string message, std::string& buffer) {
-
-}
-
 /* Check a given input string for excluded characters (for names and keys), if one is found return the offending character (or 0 for success) */
 char util::char_exclusion(std::string str) {
     // Key exclusion list
@@ -51,7 +46,7 @@ char util::char_exclusion(std::string str) {
     return 0;
 }
 
-/* Tokenize an input string based on a delimeter */
+/* Tokenize an input string */
 std::vector<std::string> util::tokenize(std::string str) {
     std::vector<std::string> tokens;
     std::stringstream ss(str);
