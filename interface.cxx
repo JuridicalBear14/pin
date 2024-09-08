@@ -317,7 +317,8 @@ int MessageWindow::event_loop(WINDOW* typebox) {
                     // If not empty, add
                     if (buffer.length() > 0) {
                         if (send_message(buffer) != E_NONE) {
-                            break;
+                            active = false;
+                            return EXIT_ERROR;
                         }
 
                         write_to_screen();

@@ -18,6 +18,9 @@ void* start_listener(void* args) {
 
 
 int main(int argc, char** argv) {
+    // Set SIGPIPE to ignore, that way we don't crash froma broken connection
+    signal(SIGPIPE, SIG_IGN);
+
     int client_fd;
     std::string ip = "127.0.0.1";
     std::string name = "";

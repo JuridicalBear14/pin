@@ -38,7 +38,72 @@ void Server_control::disconnect() {
 // MARK: List
 // ****************************** <List> ************************* //
 
+void Server_control::list_manager(std::vector<std::string> tokens) {
+    if (tokens.size() < 2) {
+        util::error(E_BAD_VALUE, "Too few arguments for \"list\" command");
+        return;
+    }
 
+    int err;
+
+    // Lookup command
+    if (tokens[1] == "users" || tokens[1] == "user") {
+        // List all or only connected?
+        bool all = false;
+        if (tokens.size() > 2 && (tokens[2] == "all" || tokens[2] == "-a")) all = true;
+
+        list_users(all);
+    } else if (tokens[1] == "convo" || tokens[1] == "convos") {
+        list_convos();
+    } else {
+        util::error(E_BAD_VALUE, "Unknown option for \"list\" command");
+        return;
+    }
+}
+
+void Server_control::list_convos() {
+
+}
+
+void Server_control::list_users(bool all) {
+    std::vector<User> users;
+
+    // If (all) then call db list, otherwise only connected users so use server list
+    if (all) {
+        // Call db
+        int ret = server->database->get_all_users(users);
+
+        if (ret != E_NONE) {
+            util::error(ret, "Failed to fetch users from database");
+            return;
+        }
+
+        if (users.size() == 0) {
+            std::cout << "| No users saved |\n";
+            return;
+        }
+    } else {
+        // Pull users from server list
+        for (int i = 0; i < MAXUSR; i++) {
+            if (server->pollfds[i].fd != -1) {  // If valid slot
+                users.push_back(server->users[i]);
+            }
+        }
+
+        if (users.size() == 0) {
+            std::cout << "| No users connected |\n";
+            return;
+        }
+    }
+
+    // Now print out vector
+    char buf[1024];  // String to construct our message into
+    for (User u : users) {
+        std::snprintf(buf, sizeof(buf), "| Name: %-15s | id: %-2d | cid: %-2d |\n", u.name, u.uid, u.cid);
+
+        std::cout << buf;
+    }
+}
 
 // ****************************** </List> ************************* //
 
@@ -207,7 +272,7 @@ void Server_control::user_loop() {
         } else if (tokens[0] == "disconnect") {
             disconnect();
         } else if (tokens[0] == "list") {
-
+            list_manager(tokens);
         } else if (tokens[0] == "edit") {
 
         } else if (tokens[0] == "create") {
@@ -215,7 +280,7 @@ void Server_control::user_loop() {
         } else if (tokens[0] == "delete") {
 
         } else {
-            util::log("Unkown command");
+            std::cout << "| Unkown command |\n";
         }
     }
 }

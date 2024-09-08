@@ -113,6 +113,11 @@ void Client::interface_handler() {
         // First we fetch all convo options
         options.clear();
         int count = fetch_convo_options(options);
+
+        if (count == -1) {
+            break;
+        }
+
         user.cid = -1;
 
         // Now run convo select
@@ -280,7 +285,7 @@ int Client::fetch_convo_options(std::vector<Convo>& v) {
 
     if (ret != E_NONE) {
         util::error(ret, "Failed to fetch convo options");
-        return 0;
+        return -1;
     }
 
     // Now transfer to arg vector and clear convo_transfer

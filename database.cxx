@@ -238,7 +238,7 @@ int DB_FS::add_user(User user) {
 /* Lookup user id by name, if not found and create is true: create new user */
 int DB_FS::get_user_id(User& user, bool newuser) {
     if (db_id == DB_NONE) {
-        return DB_NONE;
+        return E_NOT_FOUND;
     }
 
     // Loop through all users in file, either find them or generate new id of max+1
@@ -312,6 +312,34 @@ int DB_FS::get_user_id(User& user, bool newuser) {
     }
 
     return E_NOT_FOUND;
+}
+
+/* Fetch all users in the database */
+int DB_FS::get_all_users(std::vector<User>& users) {
+    if (db_id == DB_NONE) {
+        return E_NOT_FOUND;
+    }
+
+    // Loop through all users in file, either find them or generate new id of max+1
+    std::fstream f(db_path + "users", std::ios::in | std::ios::out | std::ios::binary);
+    User buf;
+
+    int count = read_file_header(db_path + "users", FILE_TYPE_USER_INDEX, sizeof(User));
+
+    if (count == DB_ERR) {
+        return E_FAILED_READ;
+    }
+
+    // Seek to first entry, then read each one
+    f.seekg(sizeof(pin_db_header), f.beg);
+
+    for (int i = 0; i < count; i++) {
+        f.read((char*) &buf, sizeof(buf));
+
+        users.push_back(buf);
+    }
+
+    return E_NONE;
 }
 
 // ****************************** </User functions> ****************************** //

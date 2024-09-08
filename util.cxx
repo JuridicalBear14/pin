@@ -105,7 +105,7 @@ void util::log(int id, std::string name, const char* message) {
     std::ostream& os = logfile ? (_f.open(logfile, std::ios::app), _f) : std::clog;
 
     char buf[1024];  // String to construct our message into
-    std::snprintf(buf, sizeof(buf), "| Name: %-15s | id: %-2d |  %s |\n", name.c_str(), id, message);
+    std::snprintf(buf, sizeof(buf), "| Name: %-15s | id: %-2d | %s |\n", name.c_str(), id, message);
 
     os << buf;
 }

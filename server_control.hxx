@@ -18,7 +18,8 @@ class Server_control {
 
         // Managers
         void list_manager(std::vector<std::string> tokens);
-        void list_users();
+        void list_users(bool all);
+        void list_convos();
 
         void edit_manager(std::vector<std::string> tokens);
 
