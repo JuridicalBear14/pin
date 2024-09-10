@@ -62,7 +62,38 @@ void Server_control::list_manager(std::vector<std::string> tokens) {
 }
 
 void Server_control::list_convos() {
+    std::vector<Convo> list;
+    User blank;   // Placeholder
 
+    int ret = server->database->get_convo_index(list, blank, true);
+
+    if (ret != E_NONE) {
+        util::error(ret, "Could not fetch convo list");
+        return;
+    }
+
+    if (list.size() == 0) {
+        std::cout << "No convos found\n";
+    }
+
+    // Now print out vector
+    char buf[1024];  // String to construct our message into
+    std::stringstream s;
+    for (Convo c : list) {
+        // Set up base info
+        std::snprintf(buf, sizeof(buf), "| Name: %-15s | id: %-2d |\n   {Users: ", c.name, c.cid);
+
+        // Now list all users
+        s << buf;
+
+        for (int i = 0; i < MAXUSR; i++) {
+            s << c.users[i] << " ";
+        }
+
+        std::cout << s.str() << "}\n";
+        memset(buf, 0, sizeof(buf));
+        s.str("");
+    }
 }
 
 void Server_control::list_users(bool all) {
@@ -223,7 +254,7 @@ int Server_control::create_convo(std::vector<std::string> tokens) {
         return DB_ERR;
     }
 
-    // User has been created
+    // Convo has been created
     util::log(convo.cid, tokens[2], "Convo has been created");
 
     return E_NONE;

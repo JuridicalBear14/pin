@@ -453,8 +453,8 @@ bool DB_FS::check_convo(Convo c, User user) {
     return false;
 }
 
-/* Fetch entries for convo index availible to user */
-int DB_FS::get_convo_index(std::vector<Convo>& items, User user) {
+/* Fetch entries for convo index available to user */
+int DB_FS::get_convo_index(std::vector<Convo>& items, User user, bool all) {
     mut.lock();
 
     if (db_id == DB_NONE) {
@@ -488,7 +488,7 @@ int DB_FS::get_convo_index(std::vector<Convo>& items, User user) {
         f.read((char*) &c, sizeof(c));
 
         // Check if this user can view these
-        if (check_convo(c, user)) {
+        if (all || check_convo(c, user)) {
             items.push_back(c);
         }
     }
