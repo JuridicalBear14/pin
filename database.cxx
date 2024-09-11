@@ -199,7 +199,7 @@ int DB_FS::read_file_header(std::string file, int type, int size) {
 
 /* Write a new user to the db */
 int DB_FS::add_user(User user) {
-    if (db_id == DB_NONE) {
+    if (db_none()) {
         return DB_NONE;
     }
 
@@ -237,8 +237,8 @@ int DB_FS::add_user(User user) {
 
 /* Lookup user id by name, if not found and create is true: create new user */
 int DB_FS::get_user_id(User& user, bool newuser) {
-    if (db_id == DB_NONE) {
-        return E_NOT_FOUND;
+    if (db_none()) {
+        return DB_NONE;
     }
 
     // Loop through all users in file, either find them or generate new id of max+1
@@ -316,7 +316,7 @@ int DB_FS::get_user_id(User& user, bool newuser) {
 
 /* Fetch all users in the database */
 int DB_FS::get_all_users(std::vector<User>& users) {
-    if (db_id == DB_NONE) {
+    if (db_none()) {
         return E_NOT_FOUND;
     }
 
@@ -353,7 +353,7 @@ int DB_FS::get_all_users(std::vector<User>& users) {
 
 /* Write a message to the database and return bytes written */
 int DB_FS::write_msg(int cid, p_header header, std::string str) {
-    if (db_id == DB_NONE) {
+    if (db_none()) {
         return DB_NONE;
     }
 
@@ -372,7 +372,7 @@ int DB_FS::write_msg(int cid, p_header header, std::string str) {
 
 /* Fetch all messages from the given convo and write them into given vector */
 int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
-    if (db_id == DB_NONE) {
+    if (db_none()) {
         return DB_NONE;
     }
 
@@ -407,7 +407,7 @@ int DB_FS::get_messages(int cid, std::vector<std::string>& messages, int count) 
 
 /* Create a new convo file (from a convo struct) and update the index and cid */
 int DB_FS::create_convo(Convo& c) {
-    if (db_id == DB_NONE) {
+    if (db_none()) {
         return DB_NONE;
     }
     mut.lock();
@@ -457,7 +457,7 @@ bool DB_FS::check_convo(Convo c, User user) {
 int DB_FS::get_convo_index(std::vector<Convo>& items, User user, bool all) {
     mut.lock();
 
-    if (db_id == DB_NONE) {
+    if (db_none()) {
         // If none, create an ephemeral convo
         Convo c;
         c.cid = -1;
@@ -466,8 +466,8 @@ int DB_FS::get_convo_index(std::vector<Convo>& items, User user, bool all) {
 
         items.push_back(c);
 
-        mut.lock();
-        return DB_NONE;
+        mut.unlock();
+        return E_NONE;
     }
 
     // Open index

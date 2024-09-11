@@ -4,7 +4,7 @@
 #include "secure.hxx"
 #include "util.hxx"
 
-#define DATA_DIR "data"
+#define DATA_DIR "data"   // The name of our database directory
 
 // Settings for which db to use
 #define DB_NONE -2
@@ -12,6 +12,7 @@
 #define DB_NEW -1
 // #define DB_ERR -3   // Some error in db space    (already defined in defn)
 
+/* Generic database class */
 class Database {
     public:
         virtual int add_user(User user) {return -1;};
@@ -24,11 +25,15 @@ class Database {
         virtual int get_all_users(std::vector<User>& users) {return -1;};
         virtual int create_convo(Convo& c) {return -1;};
 
+        bool db_none() {return db_id == DB_NONE;};
+
     protected:
         virtual int build_db() {return -1;};
+        int db_id;
         std::mutex mut;
 };
 
+/* File system implementation of databse */
 class DB_FS: public Database {
     public:
         DB_FS(int id);
@@ -49,11 +54,10 @@ class DB_FS: public Database {
         int read_file_header(std::string file, int type, int size);
         bool check_convo(Convo c, User user);
 
-        int db_id;
         std::string db_path;
 };
 
-
+/* SQL version of database (to be implemented in the future) */
 class DB_SQL: public Database {
 
 };

@@ -142,12 +142,13 @@ void Client::interface_handler() {
             }
             
             // Now request a new convo with this struct
-            user.cid = request_new_convo(c);
+            ret = request_new_convo(c);
             
-            if (user.cid == E_NO_SPACE) {
+            if (ret == E_NO_SPACE) {
                 continue;
             }
 
+            user.cid = ret;
         } else {   // Normal
             user.cid = options[choice - 1].cid;   // Remember to get cid from array since numbers are just for selection
             convo = options[choice - 1];
@@ -329,6 +330,7 @@ int Client::request_new_convo(Convo c) {
 
     // If vector empty then couldn't create
     if (convo_vector.size() == 0) {
+        mut.unlock();
         return E_NO_SPACE;
     }
 
@@ -417,7 +419,7 @@ void Client::recieve() {
 
             case STATUS_CONVO_CREATE:
                 // Check for error
-                if (header.status == STATUS_ERROR) {
+                if (header.data == STATUS_ERROR) {
                     convo_waiter.notify_all();
                     break;
                 }

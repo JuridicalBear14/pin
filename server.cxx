@@ -102,6 +102,25 @@ int Server::init_connection(int fd, int ix) {
         return ret;
     }
 
+    // If DB_NONE, just accept connection
+    if (database->db_none()) {
+        header.user.uid = DB_NONE;
+
+        mut.lock();
+
+        users[ix] = header.user;
+    
+        mut.unlock();
+
+        // Now send back header with user info
+        if ((ret = net::send_header(fd, header)) != E_NONE) {
+            return ret;
+        }
+
+        util::log(users[ix].uid, get_username(ix), "User connected");
+        return E_NONE;
+    }
+
     bool newuser = false;  // Bool for whether or not our user is new
 
     if (header.user.dynamic_key[0] == 0) {   // If key is null, then new user
@@ -226,7 +245,7 @@ void Server::connect_db(Database* db) {
 
 /* Catch the client up on the contents of the db */
 void Server::sync_client_db(Database* database, int fd, User user) {
-    util::log("Sync user with DB: ", user.uid);
+    util::log("DB sync with user: ", user.uid);
     int err;
 
     // Get items
@@ -336,7 +355,7 @@ void Server::msg_relay() {
                 }
 
                 // Validate the message sender
-                if (!secure::validate_user(header.user, users[i])) {
+                if (!database->db_none() && !secure::validate_user(header.user, users[i])) {
                     // Bad credentials, so disconnect
                     mut.lock();
 
@@ -402,7 +421,7 @@ void Server::msg_relay() {
 
                         // If couldn't write, send back error
                         if (ret < 1) {
-                            header.status = STATUS_ERROR;
+                            header.data = STATUS_ERROR;
                             header.size = 0;
 
                             net::send_header(pollfds[i].fd, header);
