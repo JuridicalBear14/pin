@@ -44,6 +44,10 @@ void Server_control::list_manager(std::vector<std::string> tokens) {
         return;
     }
 
+    // Lowercase everything
+    util::tolower(tokens[1]);
+    util::tolower(tokens[2]);
+
     int err;
 
     // Lookup command
@@ -163,6 +167,9 @@ void Server_control::create_manager(std::vector<std::string> tokens) {
         util::error(E_BAD_VALUE, "Too few arguments for \"create\" command");
         return;
     }
+
+    // Lowercase only the second token (since user/convo names are case sensitive)
+    util::tolower(tokens[1]);
     
     int err;
 
@@ -269,7 +276,30 @@ int Server_control::create_convo(std::vector<std::string> tokens) {
 // MARK: Delete
 // ****************************** <Delete> ************************* //
 
+void Server_control::delete_manager(std::vector<std::string> tokens) {
+    // First check args
+    if (tokens.size() < 3) {
+        util::error(E_BAD_VALUE, "Too few arguments for \"delete\" command");
+        return;
+    }
 
+    // Lowercase only the second token (since user/convo names are case sensitive)
+    util::tolower(tokens[1]);
+
+    if (tokens[1] == "user") {
+        delete_user(tokens[3]);
+    } else if (tokens[1] == "convo") {
+        delete_convo(std::stoi(tokens[3]));
+    }
+}
+
+void Server_control::delete_user(std::string name) {
+
+}
+
+void Server_control::delete_convo(int cid) {
+    
+}
 
 // ****************************** </Delete> ************************* //
 
@@ -292,10 +322,10 @@ void Server_control::user_loop() {
 
         // Log user command
         util::log("Admin command: ", buf);
-        util::tolower(buf);
 
         // Tokenize into vector
         tokens = util::tokenize(buf);
+        util::tolower(tokens[0]);
 
         // Big input lookup table
         if (tokens[0] == "shutdown") {
@@ -305,7 +335,7 @@ void Server_control::user_loop() {
         } else if (tokens[0] == "list") {
             list_manager(tokens);
         } else if (tokens[0] == "edit") {
-
+            delete_manager(tokens);
         } else if (tokens[0] == "create") {
             create_manager(tokens);
         } else if (tokens[0] == "delete") {
