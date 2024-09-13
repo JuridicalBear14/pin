@@ -1,11 +1,13 @@
 # pin
 
-Pin is a private, personal messaging application. The server is setup and run by individual users, and from there the client application serves as an ephemeral portal to connect to the network. There is no data saved in the client, everything is server-side to keep your data on your own machine. The storage of data (or lack thereof) is customizable to the needs of the server owner, and can be partitioned into separate databases for multi-network use on one machine. The client software is a lightweight, terminal based interface which makes it able to run on virtually any computer. It uses a dynamic key system to authenticate users (see below for details) and has no config or save data when run, the only trace is the executable itself.
+Pin is a private, personal messaging application. The server is setup and run by individual users, and from there the client application serves as an ephemeral portal to connect to the network. There is no data saved in the client, everything is server-side to keep your data on your own machine. The storage of data (or lack thereof) is customizable to the needs of the server owner, and can be partitioned into separate databases for multi-network use on one machine. The client software is a lightweight, terminal based interface which makes it able to run on virtually any computer. It uses a dynamic key system to authenticate users (see below for details) and has no config or save data when run, the only trace is the executable itself. 
+
+Below is an overview of how pin works, how to set it up, and how to use it to the fullest!
 
 ---
 
 ## Core Concepts
-An overview of the core concepts of pin.
+An overview of the core concepts of pin from a user and server owner perspective.
 
 ### Users
 
