@@ -10,11 +10,19 @@ Below is an overview of how pin works, how to set it up, and how to use it to th
 An overview of the core concepts of pin from a user and server owner perspective.
 
 ### Users
+User accounts are the access points into a pin network, all messages are tied to one of these accounts. Upon startup, the client will prompt the user to create or sign into an account, from there it will verify/register the account with the server according to the server's settings. Users are not required to exist in order to be referenced in other contexts, for example: a convo can be created with participant "user1" even if no account with that name has been registered.
+
+Users have three client-facing attributes, a username and two keys (more info on keys in the next section). Usernames are how you can identify users, and as such all usernames are required to be unique (except when on a network with no database). They are case sensitive and allow most typable characters. As for the server side, users also have a uid (user id) number, each of which are unique positive integers.
 
 ### Keys
+Keys are the security mechanism for users. Keys are case sensitive and 6 characters by default (but can be customized). They use a dynamic system, which means upon account creation the user will recieve a randomized ```dynamic key``` they can use to log in next. Then, after logging in, the system will assign the user a new ```dynamic key``` and the old one will become invalid. This ensures a compromised key does not compromise the account, which allows users to sign in on other computers with minimal risk.
+
+But what happens if you lose track of your ```dynamic key```? That's where the ```master key``` comes in. This key is assigned once when the account is created and cannot be changed. It has all the same properties as a ```dynamic key```, and can be used to connect as well. The ```master key``` is intended as a backup to protect your account, and shouldn't be used on untrusted machines. Since the ```master key``` cannot be changed, having it compromised means losing your account entirely, the only way to remedy this is to have the server owner delete your account and re-register with a new key.
 
 ### Convos
+```Convos``` (short for "conversations") are where messages are exchanged. Each ```convo``` acts as an independent chat room, with messages being contained to that ```convo```. For example: a network might have one ```convo``` named "sports" for discussing recent games, and another ```convo``` named "food" to discuss food. These separate ```convos``` allow discussion to stay organized on a network with many users. ```Convos``` are global by default, which means all users have access to them. They can be made exclusive by specifying users during creation. A ```convo``` that isn't global will only be visible to users who are included in it, and can only have messages sent from included users. ```Convos``` have a maximum of 10 participants by default (when non-global), but this can be configured by the server owner.
 
+```Convos``` have two other attributes: a cid (convo id) and a name. The cid is a unique positive integer used to distinguish ```convos```, and the name is the user facing itendtification. ```Convo``` names have all the same restrictions as user names, except that they don't have to be unique. Since there can be many duplicate ```convos``` with different users, the cid is especially important for server owners to keep track of them.
 
 ---
 
@@ -57,6 +65,8 @@ Once the server is running, there are a number of terminal commands to control t
     - List all convos (with associated information).
   - ```users```
     - List all users currently connected to the network. The ```-a``` or ```all``` argument can be used to list all users stored in the database.
+- ```create```
+- ```delete```
 ---
 
 ## Client setup and use
