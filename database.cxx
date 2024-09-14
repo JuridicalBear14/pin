@@ -461,7 +461,7 @@ int DB_FS::get_convo_index(std::vector<Convo>& items, User user, bool all) {
         // If none, create an ephemeral convo
         Convo c;
         c.cid = -1;
-        strncpy(c.name, "Phantom", 8);
+        strncpy(c.name, "Phantom", NAMELEN);
         c.global = true;
 
         items.push_back(c);

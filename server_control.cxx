@@ -287,9 +287,11 @@ void Server_control::delete_manager(std::vector<std::string> tokens) {
     util::tolower(tokens[1]);
 
     if (tokens[1] == "user") {
-        delete_user(tokens[3]);
+        delete_user(tokens[2]);
     } else if (tokens[1] == "convo") {
         delete_convo(std::stoi(tokens[3]));
+    } else if (tokens[1] == "db" || tokens[1] == "database") {
+        delete_db(std::stoi(tokens[2]));
     }
 }
 
@@ -298,6 +300,10 @@ void Server_control::delete_user(std::string name) {
 }
 
 void Server_control::delete_convo(int cid) {
+    
+}
+
+void Server_control::delete_db(int id) {
     
 }
 

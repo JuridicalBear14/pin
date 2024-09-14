@@ -23,13 +23,48 @@
 
 #define PIN_VERSION 1
 
+
+/* Configurable settings, with ifndef blocks so that they can be assigned in options header or when compiling */
+#if __has_include("options.hxx")
+#include "options.hxx"
+#endif
+
+#ifndef DEFAULT_PORT
 #define DEFAULT_PORT 5555
+#endif
+
+#ifndef MAXUSR
 #define MAXUSR 10    // Max number of users on the network
+#endif
+
+#ifndef NAMELEN
 #define NAMELEN 15     // Max name length
+#endif
+
+#ifndef MAXMSG
 #define MAXMSG 1024    // Max message length
+#endif
+
+#ifndef MAX_CONVO_USERS
 #define MAX_CONVO_USERS 10  // Max number of users for one convo (other than all)
+#endif
+
+#ifndef KEYLEN
 #define KEYLEN 6   // Length of a user authentication key
+#endif
+
+#ifndef TIMEOUT
 #define TIMEOUT 3  // Amount of time (in seconds) to wait for a read before timing out
+#endif
+
+#ifndef SERVER_SETTINGS_FILE
+#define SERVER_SETTINGS_FILE "pin.conf"
+#endif
+
+#ifndef DATA_DIR
+#define DATA_DIR "data"   // The name of our database directory
+#endif
+
 
 // Server fd slot states
 #define SERVER_SLOT_EMPTY -1

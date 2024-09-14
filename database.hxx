@@ -4,8 +4,6 @@
 #include "secure.hxx"
 #include "util.hxx"
 
-#define DATA_DIR "data"   // The name of our database directory
-
 // Settings for which db to use
 #define DB_NONE -2
 #define DB_DEFAULT 0   // Default will use the newest db in index, or create new if none are found

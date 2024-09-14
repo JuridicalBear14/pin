@@ -31,6 +31,7 @@ class Server_control {
         void delete_manager(std::vector<std::string> tokens);
         void delete_user(std::string name);
         void delete_convo(int cid);
+        void delete_db(int id);
 
         void shutdown();
         void disconnect();
