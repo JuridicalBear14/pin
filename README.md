@@ -49,7 +49,14 @@ The database settings in the config file determine where and how pin will save d
 Once the server is running, there are a number of terminal commands to control the server.
 - ```shutdown```
   - Will disconnect all users and end the server process.
-
+- ```disconnect```
+  - Will disconnect all users but leave slots open for reconnection.
+- ```list```
+  - General command for listing information, has two subsections:
+  - ```convos```
+    - List all convos (with associated information).
+  - ```users```
+    - List all users currently connected to the network. The ```-a``` or ```all``` argument can be used to list all users stored in the database.
 ---
 
 ## Client setup and use
