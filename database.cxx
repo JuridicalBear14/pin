@@ -35,6 +35,7 @@ DB_FS::DB_FS(int id) {
 
     // If default then use head
     if (id == DB_DEFAULT) {
+        std::cout << databases.size() << "\n";
         db_id = databases.back();
         db_path = "data/pin_db_" + std::to_string(db_id) + "/";
 
@@ -66,19 +67,47 @@ int DB_FS::build_FS(std::vector<int>& entries) {
         if (mkdir(DATA_DIR, 0777)) {
             return E_FAILED_WRITE;
         }
+
+        // Create index and write header to it
+        std::ofstream f("data/index", std::ios::binary);
+
+        pin_db_header h;
+        h.type = FILE_TYPE_DB_INDEX;
+        h.itemsize = sizeof(db_index_header);
+        h.itemno = 0;
+
+        f.write((char*) &h, sizeof(h));
+
+        mut.unlock();
+        f.close();
+
+        return E_NONE;
     }
 
     // Then open index file and read any contents
-    std::ofstream create("data/index", std::ios::app); create.close();   // Create the file (if not already exists)
-    std::ifstream f("data/index");
+    int count = read_file_header("data/index", FILE_TYPE_DB_INDEX, sizeof(db_index_header));
 
-    std::string buf;
-    while (std::getline(f, buf)) {
-        if (!(buf.find_first_not_of("0123456789") == std::string::npos)) {   // Invalid entry (not numerical)
-            continue; 
+    // Check for error
+    if (count == DB_ERR) {
+        return E_FAILED_READ;
+    }
+
+    std::ifstream f("data/index", std::ios::binary);
+    f.seekg(sizeof(db_index_header), f.beg);
+
+    db_index_header h;
+    for (int i = 0; i < count; i++) {
+        f.read((char*) &h, sizeof(h));
+
+        // Check for settings compatibility
+        if (NAMELEN != h.namelen || MAX_CONVO_USERS != h.max_convo_users || MAXMSG != h.max_message_length || KEYLEN != h.keylen) {
+            f.close();
+            mut.unlock();
+
+            return E_CONFLICT;
         }
 
-        entries.push_back(std::stoi(buf));
+        entries.push_back(h.id);
     }
 
     mut.unlock();
@@ -90,10 +119,10 @@ int DB_FS::build_FS(std::vector<int>& entries) {
 /* Build a new database and update index, return the id of the new db or DB_NONE for error */
 int DB_FS::build_db() {
     // Find largest id
-    int new_id = generate_id();
+    int new_id = generate_listing();
 
     // Check for error
-    if (new_id == DB_NONE) {
+    if (new_id == DB_ERR) {
         mut.unlock();
         return DB_ERR;
     }
@@ -108,11 +137,6 @@ int DB_FS::build_db() {
         mut.unlock();
         return DB_ERR;
     }
-
-    // Update index
-    std::ofstream index("data/index", std::ios::app);
-    index << new_id << std::endl;
-    index.close();
 
     // Create the convo file index to hold conversation data and write header
     std::ofstream create_index(path + "convo_index", std::ios::binary);
@@ -137,21 +161,39 @@ int DB_FS::build_db() {
     return new_id;
 }
 
-/* Generate a new unique db id */
-int DB_FS::generate_id() {
+/* Generate a new unique db id and create an index listing */
+int DB_FS::generate_listing() {
     mut.lock();
 
     // Open index
-    std::ifstream f("data/index");
-    std::string buf;
-    int max = 0;
+    std::fstream f("data/index", std::ios::in | std::ios::out | std::ios::binary);
 
-    int n;
-    while (std::getline(f, buf)) {
-        n = atoi(buf.c_str());
+    int count = read_file_header("data/index", FILE_TYPE_DB_INDEX, sizeof(db_index_header));
 
-        max = n > max ? n : max;
+    // Check for error
+    if (count == DB_ERR) {
+        return DB_ERR;
     }
+
+    f.seekg(sizeof(db_index_header), f.beg);   // Seek past file header
+
+    db_index_header h;
+    int max = 0;
+    for (int i = 0; i < count; i++) {
+        f.read((char*) &h, sizeof(h));
+
+        max = h.id > max ? h.id : max;
+    }
+
+    // Now we're at the end and have the next id, so set h and write it
+    h.id = max + 1;
+    h.keylen = KEYLEN;
+    h.max_convo_users = MAX_CONVO_USERS;
+    h.max_message_length = MAXMSG;
+    h.namelen = NAMELEN;
+
+    f.write((char*) &h, sizeof(h));
+    update_file_header("data/index", count + 1);
 
     f.close();
 

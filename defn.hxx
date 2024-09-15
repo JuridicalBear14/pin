@@ -34,7 +34,7 @@
 #endif
 
 #ifndef MAXUSR
-#define MAXUSR 10    // Max number of users on the network
+#define MAXUSR 10    // Max number of users on the network at one time
 #endif
 
 #ifndef NAMELEN
@@ -127,6 +127,7 @@ enum error_code {
 #define FILE_TYPE_NULL 0
 #define FILE_TYPE_CONVO_INDEX 1
 #define FILE_TYPE_USER_INDEX 2
+#define FILE_TYPE_DB_INDEX 3
 
 // Struct for user data
 typedef struct User {
@@ -163,3 +164,14 @@ typedef struct Convo {
     char users[MAX_CONVO_USERS][NAMELEN + 1];
     char name[NAMELEN + 1];   // +1 for null-term
 } Convo;
+
+/* Struct for database index */
+struct db_index_header {
+    int id;
+
+    // Settings for data storage
+    int namelen;
+    int keylen;
+    int max_convo_users;
+    int max_message_length;
+}; 

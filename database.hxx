@@ -47,7 +47,7 @@ class DB_FS: public Database {
     private:
         int build_FS(std::vector<int>& entries);
         int build_db();
-        int generate_id();
+        int generate_listing();
         int update_file_header(std::string file, int count);
         int read_file_header(std::string file, int type, int size);
         bool check_convo(Convo c, User user);
