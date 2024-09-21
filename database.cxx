@@ -35,7 +35,6 @@ DB_FS::DB_FS(int id) {
 
     // If default then use head
     if (id == DB_DEFAULT) {
-        std::cout << databases.size() << "\n";
         db_id = databases.back();
         db_path = "data/pin_db_" + std::to_string(db_id) + "/";
 
@@ -44,7 +43,7 @@ DB_FS::DB_FS(int id) {
     }
 
     // Otherwise fetch db
-    if (std::find(databases.begin(), databases.end(), id) != databases.end()) {
+    if (util::contains(databases, id)) {
         // It exists
         db_id = id;
         db_path = "data/pin_db_" + std::to_string(id) + "/";
