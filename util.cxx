@@ -7,17 +7,14 @@ void util::error(int code, std::string message) {
 
 /* Convert an error code to a string */
 std::string util::error2str(int code) {
+    code -= E_BEGIN;
+    
     // Check if out of bounds
-    if (code < E_NO_SPACE || code >= E_END) {  // No space is the lowest error code
-        // Could be db error
-        if (code == DB_ERR) {
-            return "DB_ERR";
-        }
-
+    if (code <= 1 || code >= (E_END - E_BEGIN)) {  // No space is the lowest error code
         return "UNKOWN_ERROR_CODE";
     }
 
-    return ERROR_DESCRIPTORS[code + 1];
+    return ERROR_DESCRIPTORS[code];
 }
 
 /* Convert a p_header status to string form */

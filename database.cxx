@@ -24,7 +24,7 @@ DB_FS::DB_FS(int id) {
     if ((id == DB_NEW) || (id == DB_DEFAULT && databases.size() < 1)) {  // Create new
         db_id = build_db();
 
-        if (db_id == DB_ERR) {
+        if (db_id != E_NONE) {
             util::error(db_id, "Unable to create database, defaulting to none");
         }
 
@@ -87,7 +87,7 @@ int DB_FS::build_FS(std::vector<int>& entries) {
     int count = read_file_header("data/index", FILE_TYPE_DB_INDEX, sizeof(db_index_header));
 
     // Check for error
-    if (count == DB_ERR) {
+    if (count < 0) {
         return E_FAILED_READ;
     }
 
@@ -121,9 +121,9 @@ int DB_FS::build_db() {
     int new_id = generate_listing();
 
     // Check for error
-    if (new_id == DB_ERR) {
+    if (new_id != E_NONE) {
         mut.unlock();
-        return DB_ERR;
+        return E_NO_SPACE;
     }
 
     mut.lock();
@@ -134,7 +134,7 @@ int DB_FS::build_db() {
 
     if (ret == -1) {
         mut.unlock();
-        return DB_ERR;
+        return E_FAILED_WRITE;
     }
 
     // Create the convo file index to hold conversation data and write header
@@ -170,8 +170,8 @@ int DB_FS::generate_listing() {
     int count = read_file_header("data/index", FILE_TYPE_DB_INDEX, sizeof(db_index_header));
 
     // Check for error
-    if (count == DB_ERR) {
-        return DB_ERR;
+    if (count < 0) {
+        return count;
     }
 
     f.seekg(sizeof(db_index_header), f.beg);   // Seek past file header
@@ -224,7 +224,7 @@ int DB_FS::read_file_header(std::string file, int type, int size) {
     f.close();
 
     if (h.type != type || h.version != PIN_VERSION || h.itemsize != size) {
-        return DB_ERR;
+        return E_CONFLICT;
     }
 
     return h.itemno;
@@ -246,7 +246,7 @@ int DB_FS::add_user(User user) {
 
     // First we encrypt both user keys, or quit if it fails
     if ((secure::encrypt(user.dynamic_key, KEYLEN) != E_NONE) || (secure::encrypt(user.master_key, KEYLEN) != E_NONE)) {
-        return DB_ERR;
+        return E_GENERIC;
     }
 
     mut.lock();
@@ -256,9 +256,9 @@ int DB_FS::add_user(User user) {
     int count = read_file_header(db_path + "users", FILE_TYPE_USER_INDEX, sizeof(User));
 
     // Check for error
-    if (count == DB_ERR) {
+    if (count < 0) {
         f.close();
-        return DB_ERR;
+        return count;
     }
 
     // Seek to the end of the file and write the user
@@ -267,8 +267,8 @@ int DB_FS::add_user(User user) {
 
     int ret = update_file_header(db_path + "users", count + 1);
 
-    if (ret == DB_ERR) {
-        return DB_ERR;
+    if (ret != E_NONE) {
+        return ret;
     }
     
     f.close();
@@ -289,7 +289,7 @@ int DB_FS::get_user_id(User& user, bool newuser) {
 
     int count = read_file_header(db_path + "users", FILE_TYPE_USER_INDEX, sizeof(User));
 
-    if (count == DB_ERR) {
+    if (count < 0) {
         return E_FAILED_READ;
     }
 
@@ -367,7 +367,7 @@ int DB_FS::get_all_users(std::vector<User>& users) {
 
     int count = read_file_header(db_path + "users", FILE_TYPE_USER_INDEX, sizeof(User));
 
-    if (count == DB_ERR) {
+    if (count < 0) {
         return E_FAILED_READ;
     }
 
@@ -516,7 +516,7 @@ int DB_FS::get_convo_index(std::vector<Convo>& items, User user, bool all) {
 
     // Read header
     int count = read_file_header(db_path + "convo_index", FILE_TYPE_CONVO_INDEX, sizeof(Convo));
-    if (count == DB_ERR) {
+    if (count < 0) {
         return E_FAILED_READ;
     }
 

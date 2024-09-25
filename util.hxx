@@ -22,7 +22,9 @@ const std::string STATUS_DESCRIPTORS[] = {
 };
 
 const std::string ERROR_DESCRIPTORS[] = {
-    "E_NO_SPACE",   // -1 to not conflict with other id systems
+    "E_BEGIN",
+
+    "E_NO_SPACE",
     "E_NONE",
     "E_CONNECTION_CLOSED",
     "E_BAD_ADDRESS",
