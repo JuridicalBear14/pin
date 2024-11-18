@@ -46,7 +46,6 @@ void Server_control::list_manager(std::vector<std::string> tokens) {
 
     // Lowercase everything
     util::tolower(tokens[1]);
-    util::tolower(tokens[2]);
 
     int err;
 
@@ -54,8 +53,11 @@ void Server_control::list_manager(std::vector<std::string> tokens) {
     if (tokens[1] == "users" || tokens[1] == "user") {
         // List all or only connected?
         bool all = false;
-        if (tokens.size() > 2 && (tokens[2] == "all" || tokens[2] == "-a")) all = true;
-
+        if (tokens.size() > 2 && (tokens[2] == "all" || tokens[2] == "-a")) {
+            all = true;
+            util::tolower(tokens[2]);
+        }
+        
         list_users(all);
     } else if (tokens[1] == "convo" || tokens[1] == "convos") {
         list_convos();
@@ -130,7 +132,7 @@ void Server_control::list_users(bool all) {
             return;
         }
     }
-
+    
     // Now print out vector
     char buf[1024];  // String to construct our message into
     for (User u : users) {
@@ -332,7 +334,7 @@ void Server_control::user_loop() {
         // Tokenize into vector
         tokens = util::tokenize(buf);
         util::tolower(tokens[0]);
-
+        
         // Big input lookup table
         if (tokens[0] == "shutdown") {
             shutdown();

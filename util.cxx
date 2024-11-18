@@ -7,17 +7,14 @@ void util::error(int code, std::string message) {
 
 /* Convert an error code to a string */
 std::string util::error2str(int code) {
+    code -= E_BEGIN;
+    
     // Check if out of bounds
-    if (code < E_NO_SPACE || code >= E_END) {  // No space is the lowest error code
-        // Could be db error
-        if (code == DB_ERR) {
-            return "DB_ERR";
-        }
-
+    if (code <= 1 || code >= (E_END - E_BEGIN)) {  // No space is the lowest error code
         return "UNKOWN_ERROR_CODE";
     }
 
-    return ERROR_DESCRIPTORS[code + 1];
+    return ERROR_DESCRIPTORS[code];
 }
 
 /* Convert a p_header status to string form */
@@ -33,12 +30,12 @@ std::string util::status2str(int status) {
 /* Check a given input string for excluded characters (for names and keys), if one is found return the offending character (or 0 for success) */
 char util::char_exclusion(std::string str) {
     // Key exclusion list
-    std::vector<char> exlcusions(KEY_EXCLUSIONS);
+    std::vector<char> exclusions(KEY_EXCLUSIONS);
 
     // Loop and check for errors
     for (char c : str) {
         // Check if excluded char, if so return c
-        if ((c < KEY_LOWER_BOUND) || (c > KEY_UPPER_BOUND) || std::count(exlcusions.begin(), exlcusions.end(), c)) {
+        if ((c < KEY_LOWER_BOUND) || (c > KEY_UPPER_BOUND) || std::count(exclusions.begin(), exclusions.end(), c)) {
             return c;
         }
     }

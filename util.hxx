@@ -22,7 +22,9 @@ const std::string STATUS_DESCRIPTORS[] = {
 };
 
 const std::string ERROR_DESCRIPTORS[] = {
-    "E_NO_SPACE",   // -1 to not conflict with other id systems
+    "E_BEGIN",
+
+    "E_NO_SPACE",
     "E_NONE",
     "E_CONNECTION_CLOSED",
     "E_BAD_ADDRESS",
@@ -48,6 +50,8 @@ class util {
         static char char_exclusion(std::string str);
         static std::vector<std::string> tokenize(std::string str);
         static void tolower(std::string& buf);
+        template <typename T>
+        inline static bool contains(std::vector<T>& list, const T& item) {return (bool) std::count(list.begin(), list.end(), item);}
 
         // Logging variants
         static void log(std::ostream& stream, std::string& message);   // Custom out

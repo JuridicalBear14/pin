@@ -13,6 +13,7 @@
 #include <string>
 #include <poll.h>
 #include <signal.h>
+#include <limits.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -98,8 +99,9 @@ enum header_status {
 
 // Error codes
 enum error_code {
-    DB_ERR = -3,   // Error in db
-    E_NO_SPACE = -1,   // -1 to not conflict with other id systems
+    E_BEGIN = -1000,    // Set to min to make all codes negative
+    
+    E_NO_SPACE,
     E_NONE,
     E_CONNECTION_CLOSED,
     E_BAD_ADDRESS,

@@ -8,7 +8,7 @@
 #define DB_NONE -2
 #define DB_DEFAULT 0   // Default will use the newest db in index, or create new if none are found
 #define DB_NEW -1
-// #define DB_ERR -3   // Some error in db space    (already defined in defn)
+#define DB_ERR -3   // Some error in db space
 
 /* Generic database class */
 class Database {
