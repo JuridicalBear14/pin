@@ -66,10 +66,15 @@ class util {
         // Serialization funcs
         static int serialize(char* buf, int size, p_header h);
         static int serialize(char* buf, int size, User user);
-        static int serialize(char* buf, int size, Convo user);
+        static int serialize(char* buf, int size, Convo convo);
 
         // Deserialization funcs
-        static int deserialize(char* buf, int size, p_header h);
-        static int deserialize(char* buf, int size, User user);
-        static int deserialize(char* buf, int size, Convo user);
+        static int deserialize(char* buf, p_header& h);
+        static int deserialize(char* buf, User& user);
+        static int deserialize(char* buf, Convo& convo);
+
+        // Real size funcs (for serialization)
+        static inline int ssize(p_header h) { return (((sizeof(int) * 2) + NAMELEN + (KEYLEN * 2 ) + 3) + (sizeof(int) * 3)); }
+        static inline int ssize(User u) { return (((sizeof(int) * 2) + NAMELEN + (KEYLEN * 2 ) + 3)); }
+        static inline int ssize(Convo c) { return (sizeof(int) + sizeof(bool) + ((MAX_CONVO_USERS + 1) * (NAMELEN + 1))); }
 };

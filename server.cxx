@@ -259,7 +259,7 @@ void Server::sync_client_db(Database* database, int fd, User user) {
     header.user = user;
     header.status = STATUS_DB_SYNC;
     header.data = items.size();
-    header.size = sizeof(Convo);
+    header.size = util::ssize(items[0]);   // Size should be for serialized objects
 
     // If no convos, just send empty header
     if (header.data == 0) {
@@ -271,9 +271,15 @@ void Server::sync_client_db(Database* database, int fd, User user) {
         }
     }
 
-    // Send all convos
+    // Send all convos, each convo needs to be serialized
+    char buf[util::ssize(items[0])];   // Safe to assume at least one item in vector
     for (Convo c : items) {
-        if ((err = net::send_msg(fd, header, &c)) != E_NONE) {
+        if (util::serialize(buf, util::ssize(c), c) != E_NONE) {
+            util::error(E_FAILED_WRITE, "Sync failed");
+            return;
+        }
+
+        if ((err = net::send_msg(fd, header, buf)) != E_NONE) {
             util::error(err, "Sync failed");
             return;
         }
@@ -323,6 +329,7 @@ void Server::msg_relay() {
     std::string str;
     p_header header;
     Convo c;
+    char buf[util::ssize(c)];
 
     // Wait for event
     while ((n = poll(pollfds, MAXUSR, 1000)) != -1) {
@@ -410,7 +417,14 @@ void Server::msg_relay() {
 
                     case STATUS_CONVO_CREATE:
                         // Read rest of message
-                        if (net::read_data(pollfds[i].fd, header.size, &c) != E_NONE) {
+                        if (net::read_data(pollfds[i].fd, header.size, buf) != E_NONE) {
+                            // Failed read
+                            net::send_header(pollfds[i].fd, {users[i].uid, -1, STATUS_ERROR, 0, 0});
+                            break;
+                        }
+
+                        // Deserialize convo
+                        if (util::deserialize(buf, c) != E_NONE) {
                             // Failed read
                             net::send_header(pollfds[i].fd, {users[i].uid, -1, STATUS_ERROR, 0, 0});
                             break;
@@ -427,7 +441,11 @@ void Server::msg_relay() {
                             net::send_header(pollfds[i].fd, header);
                         } else {
                             // Now send back the convo with new cid
-                            net::send_msg(pollfds[i].fd, header, &c);
+                            if (util::serialize(buf, sizeof(buf), c) != E_NONE) {
+                                break;
+                            }
+
+                            net::send_msg(pollfds[i].fd, header, buf);
                         }
                         break;
                 }

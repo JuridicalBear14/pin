@@ -1,5 +1,6 @@
 /* Implementation for common net functions */
 #include "net.hxx"
+#include "util.hxx"
 
 // MARK: Read
 // ****************************** <Readers> ************************* //
@@ -7,12 +8,11 @@
 /* Read a message into str and header in header, returns E_NONE for success */
 int net::read_msg(int fd, p_header& header, std::string& str) {
     // First read header
-    int ret = read(fd, &header, sizeof(p_header));
-    if (ret < (int) sizeof(p_header)) {
+    if (read_header(fd, header) != E_NONE) {
         return E_FAILED_READ;
     }
 
-    int size = header.size;    // % MAXMSG in case somehow bigger than max
+    int size = header.size;
     int bytes_read;
 
     // If something else to read, read it
@@ -34,15 +34,17 @@ int net::read_msg(int fd, p_header& header, std::string& str) {
 
 /* Read just a header */
 int net::read_header(int fd, p_header& header) {
-    int ret = read(fd, &header, sizeof(p_header));
+    char buf[util::ssize(header)];
+    int ret = read(fd, buf, sizeof(buf));
 
     if (ret == 0) {
         return E_CONNECTION_CLOSED;
-    } else if (ret < (int) sizeof(p_header)) {
+    } else if (ret < (int) sizeof(buf)) {
         return E_FAILED_READ;
     }
 
-    return E_NONE;
+    // Deserialize
+    return util::deserialize(buf, header);
 }
 
 /* Read just the data of a message (when the header was already read) */
@@ -101,10 +103,7 @@ int net::send_msg(int fd, p_header header, std::string buf) {
     }
 
     // Send header
-    int h_ret = send(fd, &header, sizeof(header), 0);
-
-    // Check for success
-    if (h_ret < (int) sizeof(p_header)) {
+    if (send_header(fd, header) != E_NONE) {
         return E_FAILED_WRITE;
     }
 
@@ -126,10 +125,7 @@ int net::send_msg(int fd, p_header header, void* buf) {
     }
 
     // Send header
-    int h_ret = send(fd, &header, sizeof(header), 0);
-
-    // Check for success
-    if (h_ret < (int) sizeof(p_header)) {
+    if (send_header(fd, header) != E_NONE) {
         return E_FAILED_WRITE;
     }
 
@@ -149,9 +145,15 @@ int net::send_msg(int fd, p_header header, void* buf) {
 
 /* Send just header to remote */
 int net::send_header(int fd, p_header header) {
-    int ret = send(fd, &header, sizeof(p_header), 0);
+    // First, serialize
+    char buf[util::ssize(header)];
+    if (util::serialize(buf, sizeof(buf), header) != E_NONE) {
+        return E_FAILED_WRITE;
+    }
 
-    if (ret < (int) sizeof(p_header)) {
+    int ret = send(fd, buf, sizeof(buf), 0);
+
+    if (ret < util::ssize(header)) {
         return E_FAILED_WRITE;
     }
     

@@ -317,10 +317,16 @@ int Client::request_new_convo(Convo c) {
     // Then we send the request
     p_header header;
     header.user = user;
-    header.size = sizeof(c);
+    header.size = util::ssize(c);
     header.status = STATUS_CONVO_CREATE; 
 
-    int ret = send_and_wait(header, &c, &convo_waiter);
+    // Serialize
+    char buf[util::ssize(c)];
+    if (util::serialize(buf, sizeof(buf), c) != E_NONE) {
+        return E_FAILED_WRITE;
+    }
+
+    int ret = send_and_wait(header, buf, &convo_waiter);
 
     if (ret != E_NONE) {
         return E_NO_SPACE;
@@ -385,6 +391,7 @@ void Client::recieve() {
     std::string str;
     p_header header;
     Convo c;
+    char buf[util::ssize(c)];  // Convo read buffer
 
     // Read headers until socket close
     while (net::read_header(client_fd, header) == E_NONE) {
@@ -405,7 +412,12 @@ void Client::recieve() {
                 }
 
                 // Read into vector
-                if (net::read_data(client_fd, header.size, &c) == E_NONE) {
+                if (net::read_data(client_fd, header.size, buf) == E_NONE) {
+                    // Now deserialize
+                    if (util::deserialize(buf, c) != E_NONE) {
+                        break;
+                    }
+
                     mut.lock();
                     convo_vector.push_back(c);
                     mut.unlock();
@@ -425,7 +437,12 @@ void Client::recieve() {
                 }
 
                 // Read into vector
-                if (net::read_data(client_fd, header.size, &c) == E_NONE) {
+                if (net::read_data(client_fd, header.size, buf) == E_NONE) {
+                    // Now deserialize
+                    if (util::deserialize(buf, c) != E_NONE) {
+                        break;
+                    }
+
                     mut.lock();
                     convo_vector.push_back(c);
                     mut.unlock();
