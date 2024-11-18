@@ -131,6 +131,8 @@ enum error_code {
 #define FILE_TYPE_USER_INDEX 2
 #define FILE_TYPE_DB_INDEX 3
 
+/* Network structs */
+
 // Struct for user data
 typedef struct User {
     int uid;   // User id
@@ -145,9 +147,19 @@ struct p_header {
     User user;
     int status;   // Message type
     int data;   // Small data field for various uses
-    uint64_t size;   // Size of following data (bytes)
+    unsigned int size;   // Size of following data (bytes)
 };
 
+/* Struct for convo data */
+typedef struct Convo {
+    int cid;
+    bool global;   // Whether or not this is open to everyone (if not then users tab gives permission)
+    char users[MAX_CONVO_USERS][NAMELEN + 1];
+    char name[NAMELEN + 1];   // +1 for null-term
+} Convo;
+
+
+/* Non-network structs */
 
 // Struct for file headers
 struct pin_db_header {
@@ -157,15 +169,6 @@ struct pin_db_header {
     int itemsize;
     int itemno;
 };
-
-
-/* Struct for convo data */
-typedef struct Convo {
-    int cid;
-    bool global;   // Whether or not this is open to everyone (if not then users tab gives permission)
-    char users[MAX_CONVO_USERS][NAMELEN + 1];
-    char name[NAMELEN + 1];   // +1 for null-term
-} Convo;
 
 /* Struct for database index */
 struct db_index_header {

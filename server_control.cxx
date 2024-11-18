@@ -1,7 +1,7 @@
 #include "server_control.hxx"
 
 // MARK: Base
-// ****************************** <Base commands> ************************* //
+// ****************************** <Base commands> ****************************** //
 
 Server_control::Server_control(Server* s) {
     server = s;
@@ -29,14 +29,14 @@ void Server_control::disconnect() {
     server->disconnect_all(false);   // False b/c we don't want to permanently close those slots
 }
 
-// ****************************** </Base commands> ************************* //
+// ****************************** </Base commands> ****************************** //
 
 
 
 
 
 // MARK: List
-// ****************************** <List> ************************* //
+// ****************************** <List> ****************************** //
 
 void Server_control::list_manager(std::vector<std::string> tokens) {
     if (tokens.size() < 2) {
@@ -142,25 +142,25 @@ void Server_control::list_users(bool all) {
     }
 }
 
-// ****************************** </List> ************************* //
+// ****************************** </List> ****************************** //
 
 
 
 
 
 // MARK: Modify
-// ****************************** <Modify> ************************* //
+// ****************************** <Modify> ****************************** //
 
 
 
-// ****************************** </Modify> ************************* //
+// ****************************** </Modify> ****************************** //
 
 
 
 
 
 // MARK: Create
-// ****************************** <Create> ************************* //
+// ****************************** <Create> ****************************** //
 
 /* Manage and call all functions derived from the create command */
 void Server_control::create_manager(std::vector<std::string> tokens) {
@@ -269,14 +269,14 @@ int Server_control::create_convo(std::vector<std::string> tokens) {
     return E_NONE;
 }
 
-// ****************************** </Create> ************************* //
+// ****************************** </Create> ****************************** //
 
 
 
 
 
 // MARK: Delete
-// ****************************** <Delete> ************************* //
+// ****************************** <Delete> ****************************** //
 
 void Server_control::delete_manager(std::vector<std::string> tokens) {
     // First check args
@@ -309,14 +309,14 @@ void Server_control::delete_db(int id) {
     
 }
 
-// ****************************** </Delete> ************************* //
+// ****************************** </Delete> ****************************** //
 
 
 
 
 
 // MARK: User loop
-// ****************************** <User loop> ************************* //
+// ****************************** <User loop> ****************************** //
 
 void Server_control::user_loop() {
     // Run until shutdown called
@@ -354,4 +354,4 @@ void Server_control::user_loop() {
     }
 }
 
-// ****************************** </User loop> ************************* //
+// ****************************** </User loop> ****************************** //

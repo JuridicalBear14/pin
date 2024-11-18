@@ -1,5 +1,8 @@
 #include "util.hxx"
 
+// MARK: <Misc>
+// ****************************** <Misc> ************************* //
+
 /* Output error message */
 void util::error(int code, std::string message) {
     std::cerr << "{ Error: " << error2str(code) << " | " << message << " }\n";
@@ -61,7 +64,14 @@ void util::tolower(std::string& buf) {
     std::transform(buf.begin(), buf.end(), buf.begin(), ::tolower);
 }
 
+// ****************************** </Misc> ************************* //
 
+
+
+
+
+// MARK: Log
+// ****************************** <Log> ************************* //
 
 /* Log an event to a given output without formatting */
 void util::log(std::ostream& stream, std::string& message) {
@@ -130,3 +140,81 @@ void util::log(const char* message, std::string buf) {
 
     os << "| " << message << buf << " |\n";
 }
+
+// ****************************** </Log> ****************************** //
+
+
+
+
+
+// MARK: Serialize
+// ****************************** <Serialize> ************************* //
+
+/* Serialize p_header */
+int util::serialize(char* buf, int size, p_header h) {
+    // True size of p_header (without padding), since it's just a user and 3 ints
+    if (size < (((sizeof(int) * 2) + NAMELEN + (KEYLEN * 2 ) + 3) + (sizeof(int) * 3))) {
+        return E_NO_SPACE;
+    }
+
+    // Tracking pointer
+    char* ptr = buf;
+
+    // First read user
+    serialize(buf, size, h.user);
+    ptr += ((sizeof(int) * 2) + NAMELEN + (KEYLEN * 2 ) + 3);  // SLightly ugly, but move by the size of User
+
+    // Now do the ints
+    int status = htonl(h.status);
+    int data = htonl(h.data);
+    int size = htonl(h.size);
+
+    memcpy(ptr, &status, sizeof(int));
+    ptr += sizeof(int);
+
+    memcpy(ptr, &data, sizeof(int));
+    ptr += sizeof(int);
+
+    memcpy(ptr, &size, sizeof(int));
+    ptr += sizeof(int);
+
+    return E_NONE;
+}
+
+/* Serialize User */
+int util::serialize(char* buf, int size, User user) {
+    // True size of p_header (without padding)
+    if (size < ((sizeof(int) * 2) + NAMELEN + (KEYLEN * 2 ) + 3)) {
+        return E_NO_SPACE;
+    }
+    
+    // Reverse byte order on ints
+    int uid = htonl(user.uid);
+    int cid = htonl(user.uid);
+
+    // Pointer to move through buf's fields
+    char* ptr = buf;
+
+    // Copy ints
+    memcpy(ptr, &uid, sizeof(int));
+    ptr += sizeof(int);   // Now move pointer to next spot
+    memcpy(ptr, &cid, sizeof(int));
+    ptr += sizeof(int);
+
+    // Copy strings
+    memcpy(ptr, &(user.name), NAMELEN);   // Only move namelen, then set null manually to ensure safety
+    ptr += NAMELEN;
+    *(ptr++) = 0;
+
+    memcpy(ptr, &(user.master_key), KEYLEN);   // Only move namelen, then set null manually to ensure safety
+    ptr += KEYLEN;
+    *(ptr++) = 0;
+
+    memcpy(ptr, &(user.dynamic_key), KEYLEN);   // Only move namelen, then set null manually to ensure safety
+    ptr += KEYLEN;
+    *(ptr++) = 0;
+
+    return E_NONE;
+}
+
+// ****************************** </Serialize> ************************* //

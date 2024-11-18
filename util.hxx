@@ -62,4 +62,14 @@ class util {
         static void log(int slot, int fd);  // Connection accept
         static void log(const char* message, int num);  // Message and number
         static void log(const char* message, std::string buf);
+
+        // Serialization funcs
+        static int serialize(char* buf, int size, p_header h);
+        static int serialize(char* buf, int size, User user);
+        static int serialize(char* buf, int size, Convo user);
+
+        // Deserialization funcs
+        static int deserialize(char* buf, int size, p_header h);
+        static int deserialize(char* buf, int size, User user);
+        static int deserialize(char* buf, int size, Convo user);
 };
