@@ -93,6 +93,7 @@ enum header_status {
     STATUS_USER_DENIED,   // User auth denied
     STATUS_NEW_USER,     // New user request
     STATUS_DISCONNECT,   // Disconnect user
+    STATUS_PING,   // Ping to check for server
 
     STATUS_END   // Final status code (for bounding purposes)
 };

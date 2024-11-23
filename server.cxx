@@ -102,6 +102,11 @@ int Server::init_connection(int fd, int ix) {
         return ret;
     }
 
+    // If it was just a ping, then return
+    if (header.status == STATUS_PING) {
+        return E_CONNECTION_CLOSED;
+    }
+
     // If DB_NONE, just accept connection
     if (database->db_none()) {
         header.user.uid = DB_NONE;
