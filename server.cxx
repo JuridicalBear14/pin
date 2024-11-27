@@ -399,8 +399,9 @@ void Server::msg_relay() {
 
                     case STATUS_MSG: 
                         // Read rest of message
-                        if (net::read_data(pollfds[i].fd, header.size, str) != E_NONE) {
+                        if ((ret = net::read_data(pollfds[i].fd, header.size, str)) != E_NONE) {
                             // Read failed
+                            util::error(ret, "Unable to read message data");
                             break;
                         }
 
