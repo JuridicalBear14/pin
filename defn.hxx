@@ -31,7 +31,7 @@
 #endif
 
 #ifndef DEFAULT_PORT
-#define DEFAULT_PORT 5555
+#define DEFAULT_PORT 55555
 #endif
 
 #ifndef MAXUSR
