@@ -66,6 +66,11 @@ int secure::pcipher2(char* buf, int size) {
 
 /* Validate key match for a perspective user and their record */
 bool secure::validate_user(User user, User record) {
+    // Check that name and key are the right length
+    if (strlen(user.name) != strlen(record.name) || strlen(user.dynamic_key) != KEYLEN) {
+        return false;
+    }
+
     // First we should check the name and uid
     if (strncmp(user.name, record.name, sizeof(user.name))) {
         // If different name/uid, wrong person

@@ -358,7 +358,7 @@ void Server::msg_relay() {
 
                     mut.unlock();
 
-                    util::log("Closed slot: ", i);
+                    util::log("Closed slot (disconnect): ", i);
                     continue;
                 } else if (ret != E_NONE) {
                     // Reset revents
@@ -382,7 +382,7 @@ void Server::msg_relay() {
 
                     mut.unlock();
 
-                    util::log("Closed slot: ", i);
+                    util::log("Closed slot (invalid credentials): ", i);
                     continue;
                 }
 
