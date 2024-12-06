@@ -264,7 +264,6 @@ void Server::sync_client_db(Database* database, int fd, User user) {
     header.user = user;
     header.status = STATUS_DB_SYNC;
     header.data = items.size();
-    header.size = util::ssize(items[0]);   // Size should be for serialized objects
 
     // If no convos, just send empty header
     if (header.data == 0) {
@@ -274,7 +273,12 @@ void Server::sync_client_db(Database* database, int fd, User user) {
             util::error(err, "Sync failed");
             return;
         }
+
+        util::log("Database sync complete for user (no convos): ", user.uid);
+        return;
     }
+
+    header.size = util::ssize(items[0]);   // Size should be for serialized objects
 
     // Send all convos, each convo needs to be serialized
     char buf[util::ssize(items[0])];   // Safe to assume at least one item in vector
