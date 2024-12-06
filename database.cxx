@@ -16,7 +16,7 @@ DB_FS::DB_FS(int id) {
     // Build the database file system (or do nothing if it already exists), then return all indexed dbs
     std::vector<int> databases;
     if ((err = build_FS(databases)) != E_NONE) {
-        util::error(err, "Error: failed to build file system, defaulting to none");
+        util::error(err, "Failed to build file system, defaulting to none");
         db_id = DB_NONE;
         return;
     }
@@ -24,7 +24,7 @@ DB_FS::DB_FS(int id) {
     if ((id == DB_NEW) || (id == DB_DEFAULT && databases.size() < 1)) {  // Create new
         db_id = build_db();
 
-        if (db_id != E_NONE) {
+        if (db_id == DB_NONE) {
             util::error(db_id, "Unable to create database, defaulting to none");
         }
 
@@ -121,9 +121,9 @@ int DB_FS::build_db() {
     int new_id = generate_listing();
 
     // Check for error
-    if (new_id != E_NONE) {
+    if (new_id == DB_NONE) {
         mut.unlock();
-        return E_NO_SPACE;
+        return DB_NONE;
     }
 
     mut.lock();
@@ -134,7 +134,7 @@ int DB_FS::build_db() {
 
     if (ret == -1) {
         mut.unlock();
-        return E_FAILED_WRITE;
+        return DB_NONE;
     }
 
     // Create the convo file index to hold conversation data and write header
@@ -171,7 +171,7 @@ int DB_FS::generate_listing() {
 
     // Check for error
     if (count < 0) {
-        return count;
+        return DB_NONE;
     }
 
     f.seekg(sizeof(db_index_header), f.beg);   // Seek past file header
