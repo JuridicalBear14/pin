@@ -57,5 +57,24 @@ class DB_FS: public Database {
 
 /* SQL version of database (to be implemented in the future) */
 class DB_SQL: public Database {
+    public:
+        DB_SQL(int id);
+        int write_msg(int cid, p_header header, std::string str);
+        int add_user(User user);
+        int get_all_messages(int cid, std::vector<std::string>& messages);
+        int get_messages(int cid, std::vector<std::string>& messages, int count);
+        int get_convo_index(std::vector<Convo>& items, User user, bool all);
+        int get_user_id(User& user, bool newuser);
+        int get_all_users(std::vector<User>& users);
+        int create_convo(Convo& c);
 
+    private:
+        int build_FS(std::vector<int>& entries);
+        int build_db();
+        int generate_listing();
+        int update_file_header(std::string file, int count);
+        int read_file_header(std::string file, int type, int size);
+        bool check_convo(Convo c, User user);
+
+        std::string db_path;
 };
