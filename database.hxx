@@ -3,6 +3,7 @@
 #include "defn.hxx"
 #include "secure.hxx"
 #include "util.hxx"
+#include "sqlite3.h"
 
 // Settings for which db to use
 #define DB_NONE -2
@@ -77,4 +78,5 @@ class DB_SQL: public Database {
         bool check_convo(Convo c, User user);
 
         std::string db_path;
+        sqlite3* db;   // The actual sql object
 };

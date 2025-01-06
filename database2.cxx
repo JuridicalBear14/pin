@@ -35,19 +35,38 @@ DB_SQL::DB_SQL(int id) {
     // If default then use head
     if (id == DB_DEFAULT) {
         db_id = databases.back();
-        db_path = "data/pin_db_" + std::to_string(db_id) + "/";
+        db_path = "data/pin_db_" + std::to_string(db_id);
 
-        util::log("Using default database at location: ", db_path);
-        return;
+        // Open SQL object
+        int ret = sqlite3_open(db_path.c_str(), &db);
+
+        if (!ret) {
+            util::log("Using default database at location: ", db_path);
+            return;
+        } else {
+            util::log("Unable to open database at location (defaulting to none): ", db_path);
+            db_id = DB_NONE;
+            return;
+        }
     }
 
     // Otherwise fetch db
     if (util::contains(databases, id)) {
         // It exists
         db_id = id;
-        db_path = "data/pin_db_" + std::to_string(id) + "/";
+        db_path = "data/pin_db_" + std::to_string(id);
 
-        util::log("Using database at location: ", db_path);
+        // Open SQL object
+        int ret = sqlite3_open(db_path.c_str(), &db);
+
+        if (!ret) {
+            util::log("Using database at location: ", db_path);
+            return;
+        } else {
+            util::log("Unable to open database at location (defaulting to none): ", db_path);
+            db_id = DB_NONE;
+            return;
+        }
     } else {
         // Doesn't exist
         util::log("Unable to find database, defaulting to none");
@@ -56,7 +75,7 @@ DB_SQL::DB_SQL(int id) {
 }
 
 /* Build the pin file system structure and/or index all databases found in it */
-int DB_FS::build_FS(std::vector<int>& entries) {
+int DB_SQL::build_FS(std::vector<int>& entries) {
     mut.lock();
 
     // First check for data dir
@@ -115,7 +134,7 @@ int DB_FS::build_FS(std::vector<int>& entries) {
 }
 
 /* Build a new database and update index, return the id of the new db or DB_NONE for error */
-int DB_FS::build_db() {
+int DB_SQL::build_db() {
     // Find largest id
     int new_id = generate_listing();
 
@@ -127,30 +146,44 @@ int DB_FS::build_db() {
 
     mut.lock();
 
-    // Create folder
-    std::string path = "data/pin_db_" + std::to_string(new_id) + "/";
-    int ret = mkdir(path.c_str(), 0777);
+    // Create file
+    std::string path = "data/pin_db_" + std::to_string(new_id);
+    int ret = sqlite3_open(path.c_str(), &db);
 
-    if (ret == -1) {
+    if (ret) {
         mut.unlock();
         return DB_NONE;
     }
 
-    // Create the convo file index to hold conversation data and write header
-    std::ofstream create_index(path + "convo_index", std::ios::binary);
-    struct pin_db_header h;
-    h.itemsize = sizeof(Convo);
-    h.itemno = 0;   // Nothing for now
-    h.type = FILE_TYPE_CONVO_INDEX;
-    create_index.write((char*) &h, sizeof(h));
-    create_index.close();
+    char* error;
+    int ret;
 
-    // Create user data file
-    std::ofstream create_users(path + "users", std::ios::binary);
-    h.itemsize = sizeof(User);
-    h.type = FILE_TYPE_USER_INDEX;
-    create_users.write((char*) &h, sizeof(h));
-    create_users.close();
+    // Create convos table
+    std::string convos_table = "";   // TODO: SQL
+    ret = sqlite3_exec(db, convos_table.c_str(), NULL, 0, &error);
+
+    if (ret != SQLITE_OK) {
+        mut.unlock();
+        return DB_NONE;
+    }
+
+    // Create users table
+    std::string users_table = "";   // TODO: SQL
+    ret = sqlite3_exec(db, users_table.c_str(), NULL, 0, &error);
+
+    if (ret != SQLITE_OK) {
+        mut.unlock();
+        return DB_NONE;
+    }
+
+    // Create messages table
+    std::string messages_table = "";   // TODO: SQL
+    ret = sqlite3_exec(db, messages_table.c_str(), NULL, 0, &error);
+
+    if (ret != SQLITE_OK) {
+        mut.unlock();
+        return DB_NONE;
+    }
 
     // Remember to set path for class!
     this->db_path = path;
