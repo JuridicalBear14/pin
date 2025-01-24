@@ -24,7 +24,8 @@ DB_SQL::DB_SQL(int id) {
         db_id = build_db();
 
         if (db_id == DB_NONE) {
-            util::error(db_id, "Unable to create database, defaulting to none");
+            util::error(E_FAILED_WRITE, "Unable to create database, defaulting to none");
+            return;
         }
 
         util::log("Using new database at location: ", db_path);
@@ -44,7 +45,7 @@ DB_SQL::DB_SQL(int id) {
             util::log("Using default database at location: ", db_path);
             return;
         } else {
-            util::log("Unable to open database at location (defaulting to none): ", db_path);
+            util::error(E_FAILED_READ, "Unable to open database at location (defaulting to none): ");
             db_id = DB_NONE;
             return;
         }
@@ -63,7 +64,7 @@ DB_SQL::DB_SQL(int id) {
             util::log("Using database at location: ", db_path);
             return;
         } else {
-            util::log("Unable to open database at location (defaulting to none): ", db_path);
+            util::error(E_FAILED_READ, "Unable to open database at location (defaulting to none): ");
             db_id = DB_NONE;
             return;
         }
@@ -150,38 +151,40 @@ int DB_SQL::build_db() {
     std::string path = "data/pin_db_" + std::to_string(new_id);
     int ret = sqlite3_open(path.c_str(), &db);
 
-    if (ret) {
+    if (ret != SQLITE_OK) {
         mut.unlock();
         return DB_NONE;
     }
 
     char* error;
-    int ret;
 
     // Create convos table
-    std::string convos_table = "";   // TODO: SQL
+    std::string convos_table = "CREATE TABLE CONVOS(CID INT PRIMARY KEY NOT NULL, GLOBAL INT NOT NULL, NAME TEXT NOT NULL, USERS TEXT);";
     ret = sqlite3_exec(db, convos_table.c_str(), NULL, 0, &error);
 
     if (ret != SQLITE_OK) {
         mut.unlock();
+        util::error(E_FAILED_WRITE, error);
         return DB_NONE;
     }
 
     // Create users table
-    std::string users_table = "";   // TODO: SQL
+    std::string users_table = "CREATE TABLE USERS(UID INT PRIMARY KEY NOT NULL, NAME TEXT NOT NULL, MKEY TEXT NOT NULL, DKEY TEXT NOT NULL);";
     ret = sqlite3_exec(db, users_table.c_str(), NULL, 0, &error);
 
     if (ret != SQLITE_OK) {
         mut.unlock();
+        util::error(E_FAILED_WRITE, error);
         return DB_NONE;
     }
 
     // Create messages table
-    std::string messages_table = "";   // TODO: SQL
+    std::string messages_table = "CREATE TABLE MESSAGES(UID INT NOT NULL, CID INT NOT NULL, CONTENT TEXT NOT NULL, TIME INT NOT NULL);";
     ret = sqlite3_exec(db, messages_table.c_str(), NULL, 0, &error);
 
     if (ret != SQLITE_OK) {
         mut.unlock();
+        util::error(E_FAILED_WRITE, error);
         return DB_NONE;
     }
 
@@ -193,7 +196,7 @@ int DB_SQL::build_db() {
 }
 
 /* Generate a new unique db id and create an index listing */
-int DB_FS::generate_listing() {
+int DB_SQL::generate_listing() {
     mut.lock();
 
     // Open index
@@ -233,7 +236,7 @@ int DB_FS::generate_listing() {
 }
 
 /* Update the item count for a file header */
-int DB_FS::update_file_header(std::string file, int count) {
+int DB_SQL::update_file_header(std::string file, int count) {
     // Open file and read current header
     std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
     pin_db_header h;
@@ -248,7 +251,7 @@ int DB_FS::update_file_header(std::string file, int count) {
 }
 
 /* Read the header of a given file and return errors for wrong data, otherwise return item count */
-int DB_FS::read_file_header(std::string file, int type, int size) {
+int DB_SQL::read_file_header(std::string file, int type, int size) {
     std::fstream f(file, std::ios::in | std::ios::out | std::ios::binary);
 
     struct pin_db_header h;
@@ -271,7 +274,7 @@ int DB_FS::read_file_header(std::string file, int type, int size) {
 // ****************************** <User functions> ****************************** //
 
 /* Write a new user to the db */
-int DB_FS::add_user(User user) {
+int DB_SQL::add_user(User user) {
     if (db_none()) {
         return DB_NONE;
     }
@@ -283,33 +286,32 @@ int DB_FS::add_user(User user) {
 
     mut.lock();
 
-    // Open user file
-    std::fstream f(db_path + "users", std::ios::in | std::ios::out | std::ios::binary);
-    int count = read_file_header(db_path + "users", FILE_TYPE_USER_INDEX, sizeof(User));
+    // Generate the SQL statement
+    std::string query = "INSERT INTO USERS VALUES(?, ?, ?, ?)";
 
-    // Check for error
-    if (count < 0) {
-        f.close();
-        return count;
+    sqlite3_stmt* stmt;
+    sqlite3_prepare16_v2(db, query.c_str(), query.length(), &stmt, nullptr);
+
+    // Bind parameters
+    sqlite3_bind_int(stmt, 1, user.uid);
+    sqlite3_bind_text(stmt, 2, user.name, strnlen(user.name, NAMELEN), SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, user.master_key, strnlen(user.master_key, KEYLEN), SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 4, user.dynamic_key, strnlen(user.dynamic_key, KEYLEN), SQLITE_STATIC);
+
+    // Now execute
+    int ret = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    if (ret != SQLITE_DONE) {
+        return E_FAILED_WRITE;
     }
 
-    // Seek to the end of the file and write the user
-    f.seekg(0, f.end);
-    f.write((char*) &user, sizeof(user));
-
-    int ret = update_file_header(db_path + "users", count + 1);
-
-    if (ret != E_NONE) {
-        return ret;
-    }
-    
-    f.close();
     mut.unlock();
     return E_NONE;
 }
 
 /* Lookup user id by name, if not found and create is true: create new user */
-int DB_FS::get_user_id(User& user, bool newuser) {
+int DB_SQL::get_user_id(User& user, bool newuser) {
     if (db_none()) {
         return DB_NONE;
     }
@@ -388,7 +390,7 @@ int DB_FS::get_user_id(User& user, bool newuser) {
 }
 
 /* Fetch all users in the database */
-int DB_FS::get_all_users(std::vector<User>& users) {
+int DB_SQL::get_all_users(std::vector<User>& users) {
     if (db_none()) {
         return E_NOT_FOUND;
     }
@@ -425,7 +427,7 @@ int DB_FS::get_all_users(std::vector<User>& users) {
 // ****************************** <Message functions> ****************************** //
 
 /* Write a message to the database and return bytes written */
-int DB_FS::write_msg(int cid, p_header header, std::string str) {
+int DB_SQL::write_msg(int cid, p_header header, std::string str) {
     if (db_none()) {
         return DB_NONE;
     }
@@ -444,7 +446,7 @@ int DB_FS::write_msg(int cid, p_header header, std::string str) {
 }
 
 /* Fetch all messages from the given convo and write them into given vector */
-int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
+int DB_SQL::get_all_messages(int cid, std::vector<std::string>& messages) {
     if (db_none()) {
         return DB_NONE;
     }
@@ -464,7 +466,7 @@ int DB_FS::get_all_messages(int cid, std::vector<std::string>& messages) {
 }
 
 /* Fetch up to [count] messages from the given convo (most-recent back) and return them */
-int DB_FS::get_messages(int cid, std::vector<std::string>& messages, int count) {
+int DB_SQL::get_messages(int cid, std::vector<std::string>& messages, int count) {
     // NOT IMPLEMENTED
     return -1;
 }
@@ -479,7 +481,7 @@ int DB_FS::get_messages(int cid, std::vector<std::string>& messages, int count) 
 // ****************************** <Convo functions> ****************************** //
 
 /* Create a new convo file (from a convo struct) and update the index and cid */
-int DB_FS::create_convo(Convo& c) {
+int DB_SQL::create_convo(Convo& c) {
     if (db_none()) {
         return DB_NONE;
     }
@@ -511,7 +513,7 @@ int DB_FS::create_convo(Convo& c) {
 }
 
 /* Check if a given user is in a convo */
-bool DB_FS::check_convo(Convo c, User user) {
+bool DB_SQL::check_convo(Convo c, User user) {
     if (c.global) {
         return true;
     }
@@ -527,7 +529,7 @@ bool DB_FS::check_convo(Convo c, User user) {
 }
 
 /* Fetch entries for convo index available to user */
-int DB_FS::get_convo_index(std::vector<Convo>& items, User user, bool all) {
+int DB_SQL::get_convo_index(std::vector<Convo>& items, User user, bool all) {
     mut.lock();
 
     if (db_none()) {

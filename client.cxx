@@ -82,7 +82,7 @@ void Client::user_login(std::string name, std::string key) {
     std::cout << "\n";
 
     // Now set the key
-    strncpy(user.dynamic_key, key.c_str(), NAMELEN + 1);   // +1 for null
+    strncpy(user.dynamic_key, key.c_str(), KEYLEN + 1);   // +1 for null
 }
 
 // ****************************** </Basic setup and utility> ****************************** //

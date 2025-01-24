@@ -61,7 +61,6 @@ class DB_SQL: public Database {
     public:
         DB_SQL(int id);
         int write_msg(int cid, p_header header, std::string str);
-        int add_user(User user);
         int get_all_messages(int cid, std::vector<std::string>& messages);
         int get_messages(int cid, std::vector<std::string>& messages, int count);
         int get_convo_index(std::vector<Convo>& items, User user, bool all);
@@ -72,6 +71,7 @@ class DB_SQL: public Database {
     private:
         int build_FS(std::vector<int>& entries);
         int build_db();
+        int add_user(User user);
         int generate_listing();
         int update_file_header(std::string file, int count);
         int read_file_header(std::string file, int type, int size);
