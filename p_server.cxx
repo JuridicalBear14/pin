@@ -122,8 +122,8 @@ int main(int argc, char** argv) {
     
     Server s(server_fd);
     Server_control scontrol(&s);
-    Database* db = new DB_FS(settings.db);
-    //Database* db = new DB_SQL(settings.db);
+    //Database* db = new DB_FS(settings.db);
+    Database* db = new DB_SQL(settings.db);
 
     // Connect db to server
     s.connect_db(db);
